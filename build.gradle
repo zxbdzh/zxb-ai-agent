@@ -1,0 +1,104 @@
+plugins {
+	id 'java'
+	id 'pmd'
+	id 'org.springframework.boot' version '4.1.0'
+	id 'io.spring.dependency-management' version '1.1.7'
+	id 'com.diffplug.spotless' version '8.8.0'
+}
+
+group = 'com.zxb'
+version = '0.0.1-SNAPSHOT'
+description = 'zxb-ai-agent'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'cn.hutool:hutool-all:5.8.46'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testCompileOnly 'org.projectlombok:lombok'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+	pmd 'com.xenoamess.p3c:p3c-pmd:2.2.1.0x'
+}
+
+spotless {
+	java {
+		target 'src/*/java/**/*.java'
+		eclipse().configFile('config/eclipse-java-formatter.xml')
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
+}
+
+pmd {
+	// P3C 当前基于 PMD 6；固定版本避免与 Gradle 默认的 PMD 版本冲突。
+	toolVersion = '6.55.0'
+	ruleSets = [
+		'rulesets/java/ali-naming.xml',
+		'rulesets/java/ali-oop.xml',
+		'rulesets/java/ali-exception.xml',
+		'rulesets/java/ali-flowcontrol.xml'
+	]
+}
+
+tasks.register('styleCheck') {
+	group = 'verification'
+	description = '检查 Java 格式和 Alibaba P3C 编码规约。'
+	dependsOn tasks.named('spotlessCheck'), tasks.named('pmdMain')
+}
+
+tasks.register('verifyCommitMessage') {
+	group = 'verification'
+	description = '校验 Git 提交信息是否符合 type(模块): 中文摘要 格式。'
+
+	doLast {
+		def messageFilePath = providers.gradleProperty('commitMessageFile').orNull
+		if (messageFilePath == null) {
+			throw new GradleException('缺少 -PcommitMessageFile 参数。')
+		}
+
+		def messageFile = file(messageFilePath)
+		if (!messageFile.isFile()) {
+			throw new GradleException("提交信息文件不存在：${messageFile}")
+		}
+
+		def subject = messageFile.readLines('UTF-8').find { line ->
+			def value = line.trim()
+			!value.isEmpty() && !value.startsWith('#')
+		}
+		def format = ~/^(feat|fix|refactor|docs|chore|test|build)\([a-z][a-z0-9._\/-]*\):\s+.+$/
+		def containsChinese = subject != null && subject ==~ /.*[\u4E00-\u9FFF].*/
+
+		if (subject == null || !(subject ==~ format) || !containsChinese) {
+			throw new GradleException('提交信息必须为 type(模块): 中文摘要，例如 feat(agent): 增加对话接口。')
+		}
+	}
+}
+
+tasks.register('installGitHooks', Exec) {
+	group = 'setup'
+	description = '将 Git 本地 hooksPath 指向项目中的 .githooks 目录。'
+	workingDir projectDir
+	commandLine 'git', 'config', '--local', 'core.hooksPath', '.githooks'
+
+	doFirst {
+		if (!file('.git').exists()) {
+			throw new GradleException('当前目录不是 Git 仓库，无法安装 Git Hook。')
+		}
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

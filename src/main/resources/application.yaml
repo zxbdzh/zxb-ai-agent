@@ -1,0 +1,3 @@
+spring:
+  application:
+    name: zxb-ai-agent
