@@ -1,3 +1,11 @@
 spring:
   application:
     name: zxb-ai-agent
+  ai:
+    openai:
+      api-key: ${OPENAI_APIKEY}
+      base-url: ${OPENAI_BASEURL:https://api.openai.com}
+      chat:
+        model: gpt-5.6-luna
+        temperature: 0.7
+        max-tokens: 1000

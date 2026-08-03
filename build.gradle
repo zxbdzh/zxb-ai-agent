@@ -21,7 +21,10 @@ repositories {
 }
 
 dependencies {
+	implementation platform('org.springframework.ai:spring-ai-bom:2.0.0')
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+	implementation 'org.springframework.ai:spring-ai-starter-model-chat-memory'
     implementation 'cn.hutool:hutool-all:5.8.46'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
