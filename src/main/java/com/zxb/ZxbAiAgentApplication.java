@@ -1,4 +1,4 @@
-package com.zxb.zxbaiagent;
+package com.zxb;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

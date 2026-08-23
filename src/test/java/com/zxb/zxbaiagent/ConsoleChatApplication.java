@@ -1,31 +1,28 @@
 package com.zxb.zxbaiagent;
 
+import com.zxb.ZxbAiAgentApplication;
 import com.zxb.app.LoveApp;
-import jakarta.annotation.Resource;
 import java.util.Scanner;
 import java.util.UUID;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
 
-@SpringBootTest
-class ZxbAiAgentApplicationTests {
+public final class ConsoleChatApplication {
 
-    @Resource
-    private LoveApp loveApp;
-
-    @Test
-    void contextLoads() {
+    private ConsoleChatApplication() {
     }
 
-    @Test
-    // @Disabled("Manual interactive test")
-    void testChat() {
-        String chatId = UUID.randomUUID().toString();
-        try (Scanner scanner = new Scanner(System.in)) {
+    public static void main(String[] args) {
+        try (ConfigurableApplicationContext context = new SpringApplicationBuilder(ZxbAiAgentApplication.class)
+                .web(WebApplicationType.NONE).run(args); Scanner scanner = new Scanner(System.in)) {
+            LoveApp loveApp = context.getBean(LoveApp.class);
+            String chatId = UUID.randomUUID().toString();
+
             System.out.println("Start chatting. Enter 'exit' or 'quit' to stop.");
             while (true) {
                 System.out.print("You: ");
+                System.out.flush();
                 if (!scanner.hasNextLine()) {
                     break;
                 }
@@ -43,5 +40,4 @@ class ZxbAiAgentApplicationTests {
             }
         }
     }
-
 }

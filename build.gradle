@@ -26,6 +26,7 @@ dependencies {
 	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 	implementation 'org.springframework.ai:spring-ai-starter-model-chat-memory'
     implementation 'cn.hutool:hutool-all:5.8.46'
+//    implementation 'org.springframework.ai:spring-ai-starter-model-ollama' // ollama
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
@@ -104,4 +105,13 @@ tasks.register('installGitHooks', Exec) {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.register('consoleChat', JavaExec) {
+	group = 'application'
+	description = '启动命令行 AI 对话。'
+	dependsOn tasks.named('testClasses')
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'com.zxb.zxbaiagent.ConsoleChatApplication'
+	standardInput = System.in
 }
