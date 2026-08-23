@@ -2,7 +2,7 @@
 title: 4. 对话记忆与会话隔离
 description: Conversation ID、20 条消息窗口和进程内存边界。
 docType: current-guide
-verifiedAgainst: f3176a90e0b514659a55e24112f31752df1ecd79
+verifiedAgainst: 4412509aa4c1f478c4e5920e65949f6aeb268181
 verifiedAt: 2026-08-23
 evidencePaths:
   - src/main/java/com/zxb/app/LoveApp.java

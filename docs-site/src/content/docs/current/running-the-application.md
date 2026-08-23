@@ -2,7 +2,7 @@
 title: 3. 运行对话
 description: 主应用和测试源码中的命令行对话入口。
 docType: current-guide
-verifiedAgainst: f3176a90e0b514659a55e24112f31752df1ecd79
+verifiedAgainst: 4412509aa4c1f478c4e5920e65949f6aeb268181
 verifiedAt: 2026-08-23
 evidencePaths:
   - build.gradle

@@ -2,7 +2,7 @@
 title: 1. 环境与安装
 description: Java、Gradle Wrapper 与首次构建前提。
 docType: current-guide
-verifiedAgainst: f3176a90e0b514659a55e24112f31752df1ecd79
+verifiedAgainst: 4412509aa4c1f478c4e5920e65949f6aeb268181
 verifiedAt: 2026-08-23
 evidencePaths:
   - build.gradle
