@@ -43,7 +43,7 @@ Spring Boot 4.1.0 + Spring AI 2.0.0 的 AI Agent 项目，集成 OpenAI 兼容 A
 
 1. **ChatClient**: 构建器模式创建，配置系统提示词和 Advisors
 2. **MessageChatMemoryAdvisor**: 自动管理对话历史，注入到每次请求
-3. **MessageWindowChatMemory**: 滑动窗口内存管理（默认保留 10 条消息）
+3. **MessageWindowChatMemory**: 滑动窗口内存管理（当前显式保留 20 条消息）
 4. **会话隔离**: 通过 `ChatMemory.CONVERSATION_ID` 参数区分不同对话
 
 典型对话流程：
@@ -54,8 +54,8 @@ Spring Boot 4.1.0 + Spring AI 2.0.0 的 AI Agent 项目，集成 OpenAI 兼容 A
 ### 环境配置
 
 **必需环境变量**：
-- `OPENAI_API_KEY`: OpenAI 兼容的 API 密钥
-- `OPENAI_BASE_URL`: 可选，API 端点（默认 OpenAI 官方地址）
+- `OPENAI_APIKEY`: OpenAI 兼容的 API 密钥
+- `OPENAI_BASEURL`: 可选，API 端点（默认 OpenAI 官方地址）
 
 **配置文件**: `src/main/resources/application.yaml`
 - 使用 `${VAR:default}` 语法支持环境变量和默认值
@@ -106,8 +106,8 @@ implementation platform('org.springframework.ai:spring-ai-bom:2.0.0')
 ### 项目结构
 
 ```
-src/main/java/com/zxb/zxbaiagent/    # 主应用代码
-src/test/java/com/zxb/zxbaiagent/    # 测试代码
+src/main/java/com/zxb/               # 主应用代码
+src/test/java/com/zxb/zxbaiagent/    # 测试与控制台入口
 src/main/resources/                   # 配置文件
 config/                               # 代码格式化配置
 .githooks/                            # Git hooks（pre-commit, commit-msg）
@@ -117,8 +117,8 @@ config/                               # 代码格式化配置
 
 - 测试类以 `Test` 结尾
 - 使用 `@SpringBootTest` 进行集成测试
-- Spring AI 测试需设置 `OPENAI_API_KEY` 环境变量
-- 多轮对话测试验证 AI 能记住上下文（参考 `MultiTurnConversationDemoTest`）
+- Spring AI 交互式测试需设置 `OPENAI_APIKEY` 环境变量
+- `ZxbAiAgentApplicationTests.testChat()` 当前是无断言的人工交互测试，不应作为自动化多轮记忆验证
 
 ## 开发工作流
 

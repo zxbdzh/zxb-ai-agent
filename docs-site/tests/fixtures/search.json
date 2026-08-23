@@ -1,0 +1,10 @@
+[
+  { "query": "对话记忆", "destination": "conversation-memory", "maxRank": 5, "kind": "topic" },
+  { "query": "MessageWindowChatMemory", "destination": "conversation-memory", "maxRank": 3, "kind": "identifier" },
+  { "query": "OPENAI_APIKEY", "destination": "model-configuration", "maxRank": 3, "kind": "identifier" },
+  { "query": "OPENAI_BASEURL", "destination": "model-configuration", "maxRank": 3, "kind": "identifier" },
+  { "query": "consoleChat", "destination": "running-the-application", "maxRank": 3, "kind": "identifier" },
+  { "query": "spotlessCheck", "destination": "verification-and-troubleshooting", "maxRank": 3, "kind": "identifier" },
+  { "query": "会话 ID", "destination": "conversation-memory", "maxRank": 5, "kind": "topic" },
+  { "query": "gpt-5.6-terra", "destination": "model-configuration", "maxRank": 3, "kind": "identifier" }
+]

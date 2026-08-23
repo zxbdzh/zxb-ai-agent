@@ -1,0 +1,52 @@
+{
+  "name": "zxb-ai-agent-docs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "astro dev --base /zxb-ai-agent",
+    "build": "astro build",
+    "preview": "astro preview --base /zxb-ai-agent",
+    "astro:check": "astro check",
+    "check": "npm run check:markdown && npm run check:current && npm run check:evolution && npm run check:history && npm run test:unit && npm run astro:check",
+    "check:markdown": "tsx scripts/check-markdown.ts",
+    "check:current": "tsx scripts/verify-current-guides.ts",
+    "check:evolution": "tsx scripts/verify-evolution-records.ts",
+    "check:evolution-immutability": "tsx scripts/verify-evolution-immutability.ts",
+    "check:history": "tsx scripts/verify-historical-manifest.ts",
+    "test:unit": "tsx --test tests/unit/*.test.ts",
+    "test:browser": "playwright test",
+    "test:links": "playwright test tests/internal-links.spec.ts",
+    "test:search": "playwright test tests/search.spec.ts",
+    "test:static": "playwright test tests/static-output.spec.ts",
+    "test:axe": "playwright test tests/accessibility.spec.ts",
+    "checkpoint:generate": "tsx scripts/generate-checkpoint.ts",
+    "lighthouse:desktop": "lhci autorun --config=./lighthouserc.cjs",
+    "lighthouse:mobile": "lhci autorun --config=./lighthouserc.mobile.cjs",
+    "lighthouse": "npm run lighthouse:desktop && npm run lighthouse:mobile"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.41.7",
+    "astro": "7.2.4"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.6",
+    "@axe-core/playwright": "4.13.0",
+    "@lhci/cli": "0.15.1",
+    "@playwright/test": "1.62.1",
+    "@types/node": "22.19.1",
+    "remark-frontmatter": "5.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-mdx": "3.1.1",
+    "remark-parse": "11.0.0",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "unified": "11.0.5",
+    "unist-util-visit": "5.0.0",
+    "yaml": "2.9.0",
+    "zod": "4.1.12"
+  }
+}

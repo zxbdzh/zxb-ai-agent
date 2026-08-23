@@ -62,9 +62,70 @@ tasks.register('styleCheck') {
 	dependsOn tasks.named('spotlessCheck'), tasks.named('pmdMain')
 }
 
+def learningTrailerKeys = [
+	'Learning-Checkpoint',
+	'Learning-Motivation',
+	'Learning-Outcome'
+]
+def optionalLearningTrailerKey = 'Learning-Guide'
+def learningGuideFormat = ~/[a-z0-9]+(?:-[a-z0-9]+)*#[a-z0-9]+(?:-[a-z0-9]+)*/
+
+def validateCommitMessage = { String message ->
+	def normalized = message.replace('\r\n', '\n').replace('\r', '\n')
+	def lines = normalized.split('\n', -1) as List
+	while (!lines.isEmpty() && (lines.last().trim().isEmpty() || lines.last().stripLeading().startsWith('#'))) {
+		lines.remove(lines.size() - 1)
+	}
+
+	def trailerLine = ~/^([A-Za-z][A-Za-z0-9-]*):[ \t]*(.*)$/
+	def terminalBlock = []
+	for (int index = lines.size() - 1; index >= 0; index--) {
+		def line = lines[index]
+		if (line.trim().isEmpty()) {
+			break
+		}
+		def matcher = line =~ trailerLine
+		if (!matcher.matches()) {
+			terminalBlock.clear()
+			break
+		}
+		terminalBlock.add(0, [matcher.group(1), matcher.group(2).trim()])
+	}
+
+	def grouped = [:].withDefault { [] }
+	terminalBlock.each { entry -> grouped[entry[0]] << entry[1] }
+	def allLearningLines = lines.findAll { it.startsWith('Learning-') }
+	def terminalLearningCount = grouped.findAll { key, ignored -> key.startsWith('Learning-') }
+		.values().inject(0) { count, values -> count + values.size() }
+	if (allLearningLines.size() != terminalLearningCount) {
+		throw new GradleException('Learning-* trailer 必须位于提交信息末尾的同一个 trailer 块中。')
+	}
+
+	def learningKeys = grouped.keySet().findAll { it.startsWith('Learning-') }
+	def allowedKeys = (learningTrailerKeys + optionalLearningTrailerKey) as Set
+	def unknownKeys = learningKeys.findAll { !allowedKeys.contains(it) }
+	if (!unknownKeys.isEmpty()) {
+		throw new GradleException("未知 Learning-* trailer：${unknownKeys.join(', ')}。")
+	}
+	if (learningKeys.isEmpty()) {
+		return
+	}
+
+	learningTrailerKeys.each { key ->
+		def values = grouped[key]
+		if (values.size() != 1 || values[0].isEmpty()) {
+			throw new GradleException("${key} 必须恰好出现一次且不能为空。")
+		}
+	}
+	def guideValues = grouped[optionalLearningTrailerKey]
+	if (guideValues.size() > 1 || (guideValues.size() == 1 && !(guideValues[0] ==~ learningGuideFormat))) {
+		throw new GradleException('Learning-Guide 最多出现一次，格式必须为保守的 slug#section。')
+	}
+}
+
 tasks.register('verifyCommitMessage') {
 	group = 'verification'
-	description = '校验 Git 提交信息是否符合 type(模块): 中文摘要 格式。'
+	description = '校验中文约定式标题和原子 Learning Checkpoint trailer。'
 
 	doLast {
 		def messageFilePath = providers.gradleProperty('commitMessageFile').orNull
@@ -77,7 +138,8 @@ tasks.register('verifyCommitMessage') {
 			throw new GradleException("提交信息文件不存在：${messageFile}")
 		}
 
-		def subject = messageFile.readLines('UTF-8').find { line ->
+		def message = messageFile.getText('UTF-8')
+		def subject = message.readLines().find { line ->
 			def value = line.trim()
 			!value.isEmpty() && !value.startsWith('#')
 		}
@@ -86,6 +148,37 @@ tasks.register('verifyCommitMessage') {
 
 		if (subject == null || !(subject ==~ format) || !containsChinese) {
 			throw new GradleException('提交信息必须为 type(模块): 中文摘要，例如 feat(agent): 增加对话接口。')
+		}
+		validateCommitMessage(message)
+	}
+}
+
+tasks.register('verifyCommitMessageFixtures') {
+	group = 'verification'
+	description = '运行 Learning Checkpoint trailer 的确定性消息夹具。'
+
+	doLast {
+		def subject = 'feat(agent): 增加学习检查点'
+		def valid = "${subject}\n\nLearning-Checkpoint: 对话记忆窗口\nLearning-Motivation: 保留作者动机\nLearning-Outcome: 保留作者结论\nLearning-Guide: conversation-memory#lifecycle\n"
+		[subject, valid].each { validateCommitMessage(it) }
+
+		def invalid = [
+			"${subject}\n\nLearning-Checkpoint: 只有部分元数据\n",
+			"${valid}Learning-Motivation: 重复\n",
+			"${valid}Learning-Unknown: 未知\n",
+			"${subject}\n\nLearning-Checkpoint:\nLearning-Motivation: 动机\nLearning-Outcome: 结果\n",
+			"${subject}\n\nLearning-Checkpoint: 主题\nLearning-Motivation: 动机\nLearning-Outcome: 结果\nLearning-Guide: ../setup#bad\n",
+			"${subject}\n\nLearning-Checkpoint: 非末尾\n\n正文\n"
+		]
+		invalid.each { fixture ->
+			try {
+				validateCommitMessage(fixture)
+				throw new GradleException('无效 Learning Checkpoint fixture 被错误接受。')
+			} catch (GradleException expected) {
+				if (expected.message == '无效 Learning Checkpoint fixture 被错误接受。') {
+					throw expected
+				}
+			}
 		}
 	}
 }

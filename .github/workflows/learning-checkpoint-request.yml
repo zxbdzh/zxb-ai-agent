@@ -1,0 +1,49 @@
+name: Learning checkpoint request
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      checkpoint_sha:
+        description: Full 40-character Learning Checkpoint SHA on master
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject manual dispatches whose selected workflow ref is not master
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master'
+        run: exit 1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/heads/master
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - name: Install trusted default-branch tooling
+        working-directory: docs-site
+        run: npm ci --ignore-scripts
+      - name: Discover every checkpoint in the immutable event range
+        working-directory: docs-site
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+          REQUESTED_SHA: ${{ inputs.checkpoint_sha }}
+        run: node_modules/.bin/tsx scripts/discover-checkpoints.ts "$EVENT_NAME" "$BEFORE_SHA" "$AFTER_SHA" "$REQUESTED_SHA"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: checkpoint-request
+          if-no-files-found: error
+          retention-days: 7
+          path: docs-site/.checkpoint-request/checkpoint-request.json

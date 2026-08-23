@@ -1,0 +1,111 @@
+name: Documentation site
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - name: Install locked dependencies
+        working-directory: docs-site
+        run: npm ci
+      - name: Install browser
+        working-directory: docs-site
+        run: npx playwright install --with-deps chromium
+      - name: Validate schemas, Markdown, guides, records, and TypeScript
+        working-directory: docs-site
+        env:
+          EVOLUTION_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          npm run check
+          npm run check:evolution-immutability
+      - name: Build static site and Pagefind index
+        working-directory: docs-site
+        env:
+          DOCS_SITE_URL: https://zxbdzh.github.io
+          DOCS_BASE_PATH: /zxb-ai-agent
+        run: npm run build
+      - name: Validate links, search, base path, output budgets, and axe
+        working-directory: docs-site
+        env:
+          DOCS_BASE_PATH: /zxb-ai-agent
+        run: npm run test:browser
+      - name: Audit production dependencies
+        working-directory: docs-site
+        run: npm audit --omit=dev --audit-level=high
+      - name: Lighthouse gates
+        working-directory: docs-site
+        run: npm run lighthouse
+      - name: Upload measurement reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: docs-measurements-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: |
+            docs-site/playwright-report/
+            docs-site/test-results/
+            docs-site/lighthouse-results/
+            docs-site/dist/pagefind/
+
+  build-pages:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Build reviewed documentation
+        working-directory: docs-site
+        env:
+          DOCS_SITE_URL: https://zxbdzh.github.io
+          DOCS_BASE_PATH: /zxb-ai-agent
+        run: |
+          npm ci
+          npm run build
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: docs-site/dist
+
+  deploy-pages:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    needs: build-pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy reviewed artifact
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

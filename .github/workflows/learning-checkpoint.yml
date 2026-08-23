@@ -1,0 +1,250 @@
+name: Learning checkpoint documentation
+
+on:
+  workflow_run:
+    workflows: [Learning checkpoint request]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  discover:
+    if: github.repository == 'zxbdzh/zxb-ai-agent' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.name == 'Learning checkpoint request' && github.event.workflow_run.head_branch == 'master'
+    runs-on: ubuntu-latest
+    outputs:
+      has_checkpoints: ${{ steps.discover.outputs.has_checkpoints }}
+      matrix: ${{ steps.discover.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/heads/master
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - name: Install trusted default-branch tooling
+        working-directory: docs-site
+        run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: checkpoint-request
+          path: docs-site/.checkpoint-request
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Revalidate requested checkpoints against current master
+        id: discover
+        working-directory: docs-site
+        run: node_modules/.bin/tsx scripts/consume-checkpoint-request.ts .checkpoint-request/checkpoint-request.json
+
+  verify:
+    if: needs.discover.outputs.has_checkpoints == 'true'
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/heads/master
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ matrix.sha }}
+          path: checkpoint
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - name: Install trusted default-branch tooling without lifecycle scripts
+        working-directory: docs-site
+        run: npm ci --ignore-scripts
+      - name: Run fixed secret-free verification plan against the checkpoint checkout
+        working-directory: checkpoint
+        run: |
+          ./gradlew styleCheck
+          ./gradlew build -x test
+      - name: Create SHA-bound CI evidence
+        working-directory: docs-site
+        env:
+          CHECKPOINT_SHA: ${{ matrix.sha }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node_modules/.bin/tsx scripts/create-verification-evidence.ts "$CHECKPOINT_SHA" "$RUN_URL" .verification
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: checkpoint-verification-${{ matrix.sha }}
+          if-no-files-found: error
+          retention-days: 90
+          path: docs-site/.verification/verification-evidence.json
+
+  generate:
+    if: needs.discover.outputs.has_checkpoints == 'true'
+    needs: [discover, verify]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    environment: learning-checkpoint-generation
+    concurrency:
+      group: learning-checkpoint-generation-${{ matrix.sha }}
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/heads/master
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - name: Install trusted default-branch tooling
+        working-directory: docs-site
+        run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: checkpoint-verification-${{ matrix.sha }}
+          path: docs-site/.verification
+      - name: Generate guarded proposal without child commands or write credentials
+        working-directory: docs-site
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          CHECKPOINT_SHA: ${{ matrix.sha }}
+          CHECKPOINT_EVENT: ${{ matrix.event }}
+        run: node_modules/.bin/tsx scripts/generate-checkpoint.ts --sha "$CHECKPOINT_SHA" --event "$CHECKPOINT_EVENT" --evidence .verification/verification-evidence.json --output .generated
+      - name: Revalidate every staged artifact before upload
+        working-directory: docs-site
+        env:
+          CHECKPOINT_SHA: ${{ matrix.sha }}
+        run: node_modules/.bin/tsx scripts/validate-staged-output.ts .generated "$CHECKPOINT_SHA"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: checkpoint-proposal-${{ matrix.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: docs-site/.generated/
+
+  publish:
+    if: needs.discover.outputs.has_checkpoints == 'true'
+    needs: [discover, generate]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: learning-checkpoint-publication-${{ matrix.sha }}
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: refs/heads/master
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - name: Install trusted default-branch tooling
+        working-directory: docs-site
+        run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: checkpoint-proposal-${{ matrix.sha }}
+          path: docs-site/.generated
+      - name: Reconfirm checkpoint still belongs to current master
+        env:
+          CHECKPOINT_SHA: ${{ matrix.sha }}
+        run: |
+          if [[ ! "$CHECKPOINT_SHA" =~ ^[0-9a-f]{40}$ ]]; then exit 1; fi
+          git fetch --no-tags origin refs/heads/master:refs/remotes/origin/master
+          git merge-base --is-ancestor "$CHECKPOINT_SHA" refs/remotes/origin/master
+      - name: Revalidate and apply bounded staged files
+        working-directory: docs-site
+        env:
+          CHECKPOINT_SHA: ${{ matrix.sha }}
+        run: |
+          node_modules/.bin/tsx scripts/validate-staged-output.ts .generated "$CHECKPOINT_SHA"
+          node_modules/.bin/tsx scripts/publish-staged-output.ts .generated
+          if [[ -f .generated/guide-update.json ]]; then
+            node_modules/.bin/tsx scripts/apply-guide-update.ts .generated/guide-update.json
+          fi
+          node_modules/.bin/tsx scripts/scan-sensitive-paths.ts .generated src/content/docs/evolution src/content/docs/current public/evidence
+      - name: Validate generated Markdown and static build
+        working-directory: docs-site
+        run: |
+          npm run check:markdown
+          npm run check:evolution
+          npm run astro:check
+          npm run build
+      - name: Resolve the single lifetime PR before writing
+        id: identity
+        shell: bash
+        working-directory: docs-site
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECKPOINT_SHA: ${{ matrix.sha }}
+        run: |
+          branch="docs/checkpoint-$CHECKPOINT_SHA"
+          gh pr list --head "$branch" --state all --json number,state,mergedAt,headRefName --limit 10 > .generated/pr-list.json
+          node_modules/.bin/tsx scripts/resolve-pr-identity.ts "$CHECKPOINT_SHA" .generated/pr-list.json
+      - name: Create, update, or reopen the single lifetime PR
+        if: steps.identity.outputs.action != 'terminal'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECKPOINT_SHA: ${{ matrix.sha }}
+          BRANCH: ${{ steps.identity.outputs.branch }}
+          PR_ACTION: ${{ steps.identity.outputs.action }}
+          PR_NUMBER: ${{ steps.identity.outputs.number }}
+        run: |
+          if [[ ! "$CHECKPOINT_SHA" =~ ^[0-9a-f]{40}$ ]]; then exit 1; fi
+          expected="docs/checkpoint-$CHECKPOINT_SHA"
+          if [[ "$BRANCH" != "$expected" ]]; then exit 1; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add -- docs-site/src/content/docs/evolution docs-site/src/content/docs/current docs-site/public/evidence
+          if git diff --cached --quiet; then
+            echo "No generated documentation changes to commit."
+          else
+            git commit -m "docs(learning): 自动生成学习文档 $CHECKPOINT_SHA"
+          fi
+          gh auth setup-git
+          remote_sha="$(git ls-remote --heads origin "$BRANCH" | cut -f1)"
+          if [[ -n "$remote_sha" ]]; then
+            git push --force-with-lease="refs/heads/$BRANCH:$remote_sha" origin "$BRANCH"
+          else
+            git push origin "$BRANCH"
+          fi
+          if [[ "$PR_ACTION" == "reopen" ]]; then gh pr reopen "$PR_NUMBER"; fi
+          if [[ "$PR_ACTION" == "update" || "$PR_ACTION" == "reopen" ]]; then
+            gh pr edit "$PR_NUMBER" --body-file docs-site/.generated/pr-body.md
+          elif [[ "$PR_ACTION" == "create" ]]; then
+            gh pr create --base master --head "$BRANCH" --title "docs(learning): 学习检查点 $CHECKPOINT_SHA" --body-file docs-site/.generated/pr-body.md
+          else
+            exit 1
+          fi
+      - name: Report already-merged lifetime PR
+        if: steps.identity.outputs.action == 'terminal'
+        run: echo "The lifetime PR for ${{ matrix.sha }} is already merged; rerun is terminal."

@@ -1,0 +1,20 @@
+import { appendFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { FixedGitRunner } from './lib/command-runner.js';
+import { assertFullSha } from './lib/identity.js';
+import { validateCheckpointTrailers } from './lib/trailers.js';
+
+const sha = assertFullSha(process.argv[2] ?? '');
+const siteRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repositoryRoot = path.resolve(siteRoot, '..');
+const runner = new FixedGitRunner();
+const result = await runner.run(['git', 'show', '-s', '--format=%B', sha], { cwd: repositoryRoot });
+if (result.exitCode !== 0) throw new Error('unable to inspect checkpoint candidate');
+const message = result.stdout.toString('utf8');
+const validation = validateCheckpointTrailers(message);
+const generatedDocsCommit = message.split(/\r?\n/, 1)[0]?.startsWith('docs(learning): 自动生成学习文档') ?? false;
+const isCheckpoint = validation.kind === 'checkpoint' && !generatedDocsCommit;
+const output = process.env.GITHUB_OUTPUT;
+if (output) await appendFile(output, `is_checkpoint=${isCheckpoint}\nsha=${sha}\n`, 'utf8');
+else console.log(JSON.stringify({ isCheckpoint, sha }));

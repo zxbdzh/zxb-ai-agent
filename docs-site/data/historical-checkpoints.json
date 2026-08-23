@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "sha": "41621ce31e07dc82e83d563e72185134d685339a",
+      "subject": "feat(config): 初始化项目与 Git Hook"
+    },
+    {
+      "sha": "eb644712b31bdf6e31686ca938f61b6e5895dc57",
+      "subject": "feat(ai): 集成 Spring AI 实现多轮对话DEMO"
+    },
+    {
+      "sha": "f3176a90e0b514659a55e24112f31752df1ecd79",
+      "subject": "feat(agent): 增加对话应用并补充学习文档"
+    }
+  ]
+}
