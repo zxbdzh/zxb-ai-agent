@@ -2,6 +2,8 @@
 title: 2. 模型配置
 description: 当前 OpenAI 兼容模型的实际配置键和值。
 docType: current-guide
+sidebar:
+  order: 2
 verifiedAgainst: 4412509aa4c1f478c4e5920e65949f6aeb268181
 verifiedAt: 2026-08-23
 evidencePaths:

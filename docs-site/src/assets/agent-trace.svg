@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 360" role="img" aria-labelledby="title desc">
+  <title id="title">Agent learning trace</title>
+  <desc id="desc">输入、记忆、验证与检查点形成一条可追溯的学习路径</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M42 178h74l42-72h78l42 148h84l42-76h74" stroke="#20b8cd" stroke-width="8"/>
+    <path d="M42 178h74l42-72h78l42 148h84l42-76h74" stroke="#e8efed" stroke-opacity=".2" stroke-width="20"/>
+  </g>
+  <g font-family="ui-monospace,Consolas,monospace" font-size="15" font-weight="700">
+    <g transform="translate(42 178)"><circle r="20" fill="#20b8cd"/><text x="-12" y="5" fill="#071315">IN</text><text x="-21" y="52" fill="#91a09d">输入</text></g>
+    <g transform="translate(158 106)"><circle r="20" fill="#46b982"/><text x="-14" y="5" fill="#071315">MEM</text><text x="-21" y="-36" fill="#91a09d">记忆</text></g>
+    <g transform="translate(278 254)"><circle r="20" fill="#f2b84b"/><text x="-13" y="5" fill="#241800">RUN</text><text x="-21" y="52" fill="#91a09d">验证</text></g>
+    <g transform="translate(404 178)"><circle r="20" fill="#e66a5c"/><text x="-13" y="5" fill="#260b08">CP</text><text x="-28" y="-36" fill="#91a09d">检查点</text></g>
+  </g>
+  <g fill="#91a09d" font-family="ui-monospace,Consolas,monospace" font-size="13">
+    <text x="28" y="322">TRACE / SHA-BOUND / REVIEWED</text>
+    <text x="338" y="322">20 MSG WINDOW</text>
+  </g>
+</svg>

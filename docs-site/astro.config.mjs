@@ -7,7 +7,16 @@ export default defineConfig({
   output: 'static',
   integrations: [
     starlight({
-      title: 'zxb-ai-agent 学习文档',
+      title: 'zxb-ai-agent',
+      logo: {
+        dark: './src/assets/logo-dark.svg',
+        light: './src/assets/logo-light.svg',
+        alt: 'zxb-ai-agent 运行轨迹',
+      },
+      customCss: ['./src/styles/custom.css'],
+      social: [
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/zxbdzh/zxb-ai-agent' },
+      ],
       defaultLocale: 'root',
       locales: {
         root: { label: '简体中文', lang: 'zh-CN' },

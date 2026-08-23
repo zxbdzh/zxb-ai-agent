@@ -2,6 +2,8 @@
 title: 5. 验证与故障排查
 description: 构建、样式、Git Hooks 与模型测试边界。
 docType: current-guide
+sidebar:
+  order: 5
 verifiedAgainst: 4412509aa4c1f478c4e5920e65949f6aeb268181
 verifiedAt: 2026-08-23
 evidencePaths:

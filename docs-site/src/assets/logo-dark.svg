@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 164 40" role="img" aria-labelledby="title desc">
+  <title id="title">zxb-ai-agent</title>
+  <desc id="desc">一条连接四个状态节点的 Agent 运行轨迹</desc>
+  <path d="M8 20h24l10-10h22l10 20h24l10-10h22" fill="none" stroke="#20b8cd" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="8" cy="20" r="5" fill="#20b8cd"/>
+  <circle cx="42" cy="10" r="5" fill="#46b982"/>
+  <circle cx="74" cy="30" r="5" fill="#f2b84b"/>
+  <circle cx="108" cy="20" r="5" fill="#e66a5c"/>
+  <path d="M136 13h20M136 20h14M136 27h18" stroke="#e8efed" stroke-width="3" stroke-linecap="round"/>
+</svg>
