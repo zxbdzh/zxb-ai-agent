@@ -187,9 +187,10 @@
 
   .sl-markdown-content h2 {
     position: relative;
-    margin-top: 3.5rem;
-    padding-top: 1rem;
+    margin-block-start: 1.5rem;
+    padding-top: 3rem;
     border-top: 1px solid var(--sl-color-hairline-light);
+    scroll-margin-top: calc(var(--sl-nav-height) + 2rem);
   }
 
   .sl-markdown-content h2::before {
@@ -399,6 +400,35 @@
     margin-inline-start: 21rem;
     padding-bottom: 1.45rem;
     color: var(--sl-color-gray-2);
+  }
+
+  @media (min-width: 72rem) {
+    .right-sidebar-container,
+    .right-sidebar {
+      width: var(--sl-sidebar-width);
+      min-width: var(--sl-sidebar-width);
+    }
+
+    :root[data-has-sidebar][data-has-toc] .main-pane {
+      width: calc(100% - var(--sl-sidebar-width));
+    }
+
+    :root[data-has-sidebar][data-has-toc] .main-pane .content-panel > .sl-container {
+      margin-inline: auto;
+    }
+
+    header.header > .header > :nth-child(2) {
+      position: absolute;
+      inset-inline-start: calc(50% - 11rem);
+      width: 22rem;
+    }
+
+    site-search dialog {
+      position: fixed;
+      inset-inline: 50% auto;
+      margin-inline: 0;
+      transform: translateX(-50%);
+    }
   }
 
   @media (min-width: 50rem) and (max-width: 74rem) {
