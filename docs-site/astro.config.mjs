@@ -13,7 +13,6 @@ export default defineConfig({
         light: './src/assets/logo-light.svg',
         alt: 'zxb-ai-agent 运行轨迹',
       },
-      customCss: ['./src/styles/custom.css'],
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/zxbdzh/zxb-ai-agent' },
       ],
