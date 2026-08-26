@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { appendFactualRevision, evolutionFilename, renderEvolutionRecord, validateGeneratedRecord } from '../../scripts/lib/render.js';
 import type { GenerationOutput } from '../../scripts/lib/schema.js';
 import { createVerificationEvidence } from '../../scripts/lib/verification.js';
+import YAML from 'yaml';
 
 const sha = 'b'.repeat(40);
 const output: GenerationOutput = {
@@ -50,6 +51,11 @@ test('renderer derives deterministic filename and requires durable matching CI e
   assert.match(markdown, /GitHub Actions run/);
   assert.match(markdown, new RegExp(`checkpoint-verification-${sha}`));
   assert.match(markdown, /`docs-check`（建议但未执行）/);
+  const frontmatter = /^---\n([\s\S]*?)\n---/.exec(markdown);
+  assert.ok(frontmatter);
+  const parsed = YAML.parse(frontmatter[1]!) as Record<string, unknown>;
+  assert.equal(parsed.checkpointDate, output.date);
+  assert.equal(typeof parsed.checkpointDate, 'string');
   assert.throws(() => renderEvolutionRecord(output, createVerificationEvidence('c'.repeat(40), 'https://github.com/zxbdzh/zxb-ai-agent/actions/runs/456')));
 });
 

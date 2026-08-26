@@ -5,6 +5,7 @@ import { tagGenerationPrompt, validateTagGeneratedOutput, generateTagWithRepairs
 import type { GenerationProvider } from '../../scripts/lib/providers.js';
 import { renderTagEvolutionRecord, tagEvolutionFilename } from '../../scripts/lib/tag-render.js';
 import { createVerificationEvidence } from '../../scripts/lib/verification.js';
+import YAML from 'yaml';
 
 const targetSha = 'a'.repeat(40);
 const baseSha = 'b'.repeat(40);
@@ -78,6 +79,11 @@ test('tag Evolution Record is deterministic and evidence-bound', () => {
   assert.match(markdown, /docs-v1\.2\.3/);
   assert.match(markdown, /running-the-application#main-application/);
   assert.match(markdown, new RegExp(targetSha));
+  const frontmatter = /^---\n([\s\S]*?)\n---/.exec(markdown);
+  assert.ok(frontmatter);
+  const parsed = YAML.parse(frontmatter[1]!) as Record<string, unknown>;
+  assert.equal(parsed.checkpointDate, output.date);
+  assert.equal(typeof parsed.checkpointDate, 'string');
 });
 
 test('OpenAI structured schema remains strict and declares all required tag fields', () => {
