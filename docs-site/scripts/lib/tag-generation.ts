@@ -6,7 +6,7 @@ import { assertNoSensitiveValues } from './sensitive-data.js';
 import { tagGenerationOutputSchema, type TagGenerationOutput, tagGenerationJsonSchema } from './tag-schema.js';
 
 const MAX_PROVIDER_INPUT = 2_500_000;
-const PROVIDER_TIMEOUT_MS = 90_000;
+const PROVIDER_TIMEOUT_MS = 240_000;
 const MAX_REPAIRS = 2;
 
 export interface TagGenerationIdentity {
