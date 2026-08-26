@@ -25,8 +25,8 @@ public class LoveApp {
             + "引导用户详述事情经过、对方反应及自身想法，以便给出专属解决方案。";
 
     public LoveApp(ChatModel chatModel) {
-        // 初始化基于内存的对话记忆
-        ChatMemory chatMemory = MessageWindowChatMemory.builder().maxMessages(3).build(); // 内部默认使用InMemoryChatMemoryRepository存储
+        // 保留最近 3 条消息，并使用进程内存仓库存储会话历史
+        ChatMemory chatMemory = MessageWindowChatMemory.builder().maxMessages(3).build();
         this.chatClient = ChatClient.builder(chatModel).defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build()).build();
     }

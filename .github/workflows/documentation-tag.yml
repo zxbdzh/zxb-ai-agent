@@ -106,6 +106,7 @@ jobs:
       - name: Run fixed secret-free verification against tagged code
         working-directory: tagged
         run: |
+          chmod +x ./gradlew
           ./gradlew styleCheck
           ./gradlew build -x test
       - name: Create target-SHA-bound evidence
