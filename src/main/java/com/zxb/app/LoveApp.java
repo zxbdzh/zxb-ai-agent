@@ -25,7 +25,7 @@ public class LoveApp {
             + "引导用户详述事情经过、对方反应及自身想法，以便给出专属解决方案。";
 
     public LoveApp(ChatModel chatModel) {
-        // 保留最近 3 条消息，并使用进程内存仓库存储会话历史
+        // 使用进程内存仓库，并将滑动窗口限制为最近 3 条消息
         ChatMemory chatMemory = MessageWindowChatMemory.builder().maxMessages(3).build();
         this.chatClient = ChatClient.builder(chatModel).defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build()).build();

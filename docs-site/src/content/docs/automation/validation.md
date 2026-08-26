@@ -32,7 +32,7 @@ npm audit --omit=dev --audit-level=high
 
 Repository Settings 中把 Pages Source 设为 GitHub Actions，并在 Actions → General 启用 “Allow GitHub Actions to create and approve pull requests”。创建受保护的 `learning-checkpoint-generation` environment，保留 required reviewer，并把 deployment branch/tag policy 配置为允许 `docs-v*` tags；把兼容服务密钥保存为该 environment 的 secret `OPENAI_API_KEY`。
 
-在 Repository variables 中配置：
+在 Repository variables 或 Repository secrets 中配置以下同名字段；workflow 优先读取 variable，缺失时读取 secret：
 
 - `OPENAI_BASE_URL`：兼容服务的 HTTPS API base，例如 `https://api.example.com/v1`。自动化会拼接 `/responses`；也可直接填写以 `/v1/responses` 结尾的地址。
 - `OPENAI_MODEL`：兼容服务实际提供的模型标识。

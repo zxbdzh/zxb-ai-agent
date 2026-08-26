@@ -35,8 +35,8 @@ Configure these values before pushing the first documentation tag:
 | GitHub setting | Kind | Example | Purpose |
 |---|---|---|---|
 | `OPENAI_API_KEY` | Environment secret | `sk-...` | Compatible service credential |
-| `OPENAI_BASE_URL` | Repository variable | `https://api.example.com/v1` | Responses API base; the generator appends `/responses` |
-| `OPENAI_MODEL` | Repository variable | `your-model-id` | Model exposed by the compatible service |
+| `OPENAI_BASE_URL` | Repository variable or secret | `https://api.example.com/v1` | Responses API base; the generator appends `/responses` |
+| `OPENAI_MODEL` | Repository variable or secret | `your-model-id` | Model exposed by the compatible service |
 
 - Keep `OPENAI_API_KEY` in the protected `learning-checkpoint-generation` environment. Its deployment branch/tag policy must allow `docs-v*` tags; a required reviewer can remain enabled.
 - `OPENAI_BASE_URL` must be an HTTPS URL without credentials, query, or fragment. Supplying `.../v1/responses` is also accepted and will not duplicate the suffix.
