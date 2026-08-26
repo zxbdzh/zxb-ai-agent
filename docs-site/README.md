@@ -15,7 +15,7 @@ git push origin docs-v1.0.0
 
 `Documentation tag generation` then:
 
-1. compares the new tag with the previous reachable `docs-v*` tag;
+1. compares the new tag with the most recent successfully published reachable `docs-v*` tag; failed tags without committed evidence do not become a baseline;
 2. runs the fixed secret-free Gradle verification plan against the tagged checkout;
 3. gives the guarded repository snapshot and bounded Git diff to the AI generator;
 4. creates one version Evolution Record and updates every changed allowlisted Current Guide section;
@@ -26,7 +26,7 @@ git push origin docs-v1.0.0
 
 The tag must match `docs-vMAJOR.MINOR.PATCH` (an optional prerelease suffix is allowed) and must point to the current remote `master` HEAD. Re-pushing an existing tag does not create a new Git event; rerun it from the workflow's manual dispatch with the existing tag name.
 
-The first documentation tag creates a full repository baseline. Later tags use the previous reachable `docs-v*` tag as their comparison base. Do not move or reuse published documentation tags.
+The first successfully published documentation tag creates a full repository baseline. Later tags use the previous reachable `docs-v*` tag whose evidence has already been committed to `master`. Failed tags are immutable diagnostics but do not truncate the next comparison range. Do not move or reuse published documentation tags.
 
 ## Repository setup
 

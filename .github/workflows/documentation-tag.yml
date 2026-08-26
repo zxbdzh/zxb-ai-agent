@@ -59,11 +59,15 @@ jobs:
           fi
           previous_tag=""
           while IFS= read -r ancestor_sha; do
-            candidate="$(git tag --points-at "$ancestor_sha" --list 'docs-v*' | sort -V | tail -n 1)"
-            if [[ -n "$candidate" ]]; then
-              previous_tag="$candidate"
-              break
-            fi
+            while IFS= read -r candidate; do
+              [[ -n "$candidate" ]] || continue
+              candidate_sha="$(git rev-list -n 1 "$candidate")"
+              evidence="docs-site/public/evidence/checkpoint-verification-$candidate_sha.json"
+              if git cat-file -e "$target_sha:$evidence" 2>/dev/null; then
+                previous_tag="$candidate"
+                break 2
+              fi
+            done < <(git tag --points-at "$ancestor_sha" --list 'docs-v*' | sort -Vr)
           done < <(git rev-list --first-parent "$target_sha^")
           if [[ -n "$previous_tag" ]]; then
             base_sha="$(git rev-list -n 1 "$previous_tag")"

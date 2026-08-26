@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { tagGenerationJsonSchema, tagGenerationOutputSchema, assertDocsTag, type TagGenerationOutput } from '../../scripts/lib/tag-schema.js';
-import { tagGenerationPrompt, validateTagGeneratedOutput, type GuideImpact } from '../../scripts/lib/tag-generation.js';
+import { tagGenerationPrompt, validateTagGeneratedOutput, generateTagWithRepairs, type GuideImpact } from '../../scripts/lib/tag-generation.js';
+import type { GenerationProvider } from '../../scripts/lib/providers.js';
 import { renderTagEvolutionRecord, tagEvolutionFilename } from '../../scripts/lib/tag-render.js';
 import { createVerificationEvidence } from '../../scripts/lib/verification.js';
 
@@ -48,6 +49,25 @@ test('tag prompt binds range identity and exposes only allowlisted guide section
   assert.equal(prompt.changedRange, 'diff');
   assert.deepEqual(prompt.currentGuideEvidenceImpact, guideImpacts);
   assert.match(JSON.stringify(prompt), /conversation-memory#memory/);
+  assert.deepEqual((prompt.constraints as { output: { schema: unknown } }).output.schema, tagGenerationJsonSchema);
+});
+
+test('tag generation strengthens retry prompts after provider parse failures', async () => {
+  const inputs: string[] = [];
+  let attempt = 0;
+  const provider: GenerationProvider = {
+    async generate(input) {
+      inputs.push(input);
+      attempt += 1;
+      if (attempt < 3) throw new Error('model response does not contain a JSON object');
+      return output;
+    },
+  };
+  assert.equal((await generateTagWithRepairs(provider, 'original prompt')).tag, output.tag);
+  assert.equal(inputs.length, 3);
+  assert.equal(inputs[0], 'original prompt');
+  assert.match(inputs[1]!, /Return exactly one JSON object/);
+  assert.match(inputs[1]!, /does not contain a JSON object/);
 });
 
 test('tag Evolution Record is deterministic and evidence-bound', () => {
