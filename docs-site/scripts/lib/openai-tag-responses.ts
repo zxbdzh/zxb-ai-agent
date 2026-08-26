@@ -48,7 +48,15 @@ export class OpenAITagGenerationProvider implements GenerationProvider {
     try {
       parsed = JSON.parse(extractJsonObject(outputText(response)));
     } catch {
-      parsed = await chatCompletionJson(this.apiKey, this.model, DEVELOPER_INSTRUCTION, input, signal);
+      parsed = await chatCompletionJson(
+        this.apiKey,
+        this.model,
+        DEVELOPER_INSTRUCTION,
+        input,
+        'tag_documentation',
+        tagGenerationJsonSchema,
+        signal,
+      );
     }
     return tagGenerationOutputSchema.parse(parsed);
   }

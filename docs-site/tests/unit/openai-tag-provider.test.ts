@@ -32,7 +32,7 @@ test('tag provider falls back from non-JSON Responses output to Chat Completions
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(output) } }] }), {
+    return new Response(JSON.stringify({ choices: [{ message: { tool_calls: [{ function: { arguments: JSON.stringify(output) } }] } }] }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -45,6 +45,15 @@ test('tag provider falls back from non-JSON Responses output to Chat Completions
     assert.deepEqual(urls, ['https://example.com/v1/responses', 'https://example.com/v1/chat/completions']);
     assert.equal(requestBodies[0]?.max_output_tokens, 20_000);
     assert.equal(requestBodies[1]?.max_tokens, 20_000);
+    const chatBody = requestBodies[1] as {
+      tools?: Array<{ function?: { name?: string; strict?: boolean; parameters?: unknown } }>;
+      tool_choice?: { function?: { name?: string } };
+      parallel_tool_calls?: boolean;
+    };
+    assert.equal(chatBody.tools?.[0]?.function?.name, 'tag_documentation');
+    assert.equal(chatBody.tools?.[0]?.function?.strict, true);
+    assert.equal(chatBody.tool_choice?.function?.name, 'tag_documentation');
+    assert.equal(chatBody.parallel_tool_calls, false);
   } finally {
     if (previousBaseUrl === undefined) delete process.env.OPENAI_BASE_URL;
     else process.env.OPENAI_BASE_URL = previousBaseUrl;

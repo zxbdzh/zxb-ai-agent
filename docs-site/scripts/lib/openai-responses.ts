@@ -96,7 +96,15 @@ export class OpenAIResponsesGenerationProvider implements GenerationProvider {
     try {
       return JSON.parse(extractJsonObject(outputText(response)));
     } catch {
-      return await chatCompletionJson(this.apiKey, this.model, GENERATION_INSTRUCTION, input, signal);
+      return await chatCompletionJson(
+        this.apiKey,
+        this.model,
+        GENERATION_INSTRUCTION,
+        input,
+        'learning_record',
+        generationJsonSchema,
+        signal,
+      );
     }
   }
 }
