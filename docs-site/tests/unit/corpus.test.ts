@@ -37,6 +37,18 @@ test('corpus uses fixed git argv and excludes generated and credential paths bef
   assert.deepEqual(corpus.excluded.map((item) => item.rule), ['generated-or-vendor-path', 'credential-path']);
 });
 
+test('corpus supports bounded caller exclusions before enforcing the file limit', async () => {
+  const runner = new FixtureRunner({
+    'src/App.java': Buffer.from('class App {}'),
+    'docs-site/src/content/docs/evolution/old.md': Buffer.from('历史记录'),
+    'docs-site/public/evidence/old.json': Buffer.from('{}'),
+  });
+  const corpus = await buildCorpus(runner, 'repo', sha, { excludedPrefixes: ['docs-site/src/content/docs/evolution/', 'docs-site/public/evidence/'] });
+  assert.deepEqual(corpus.files.map((file) => file.path), ['src/App.java']);
+  assert.deepEqual(corpus.excluded.map((item) => item.path), ['docs-site/src/content/docs/evolution/old.md', 'docs-site/public/evidence/old.json']);
+  await assert.rejects(() => buildCorpus(runner, 'repo', sha, { excludedPrefixes: ['../escape'] }));
+});
+
 test('corpus excludes NUL content', async () => {
   const runner = new FixtureRunner({ 'image.bin': Buffer.from([1, 0, 2]) });
   const corpus = await buildCorpus(runner, 'repo', sha);

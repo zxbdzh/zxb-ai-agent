@@ -11,7 +11,7 @@ async function source(relative: string): Promise<string> {
 
 test('conversation-memory guide claims remain mechanically tied to LoveApp source', async () => {
   const loveApp = await source('src/main/java/com/zxb/app/LoveApp.java');
-  assert.match(loveApp, /MessageWindowChatMemory\.builder\(\)\.maxMessages\(20\)\.build\(\)/);
+  assert.match(loveApp, /MessageWindowChatMemory\.builder\(\)\.maxMessages\(3\)\.build\(\)/);
   assert.match(loveApp, /param\(CONVERSATION_ID, chatId\)/);
   assert.match(loveApp, /ChatMemory chatMemory/);
   assert.doesNotMatch(loveApp, /Jdbc|Redis/i);

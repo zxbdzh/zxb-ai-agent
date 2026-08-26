@@ -30,7 +30,16 @@ npm audit --omit=dev --audit-level=high
 
 ## GitHub 设置
 
-Repository Settings 中把 Pages Source 设为 GitHub Actions。创建受保护的 `learning-checkpoint-generation` environment，限制可部署分支为 `master` 并配置 required reviewer；把 `OPENAI_API_KEY` 保存为该 environment 的 secret，可选配置仓库变量 `OPENAI_MODEL`。
+Repository Settings 中把 Pages Source 设为 GitHub Actions，并在 Actions → General 启用 “Allow GitHub Actions to create and approve pull requests”。创建受保护的 `learning-checkpoint-generation` environment，保留 required reviewer，并把 deployment branch/tag policy 配置为允许 `docs-v*` tags；把兼容服务密钥保存为该 environment 的 secret `OPENAI_API_KEY`。
+
+在 Repository variables 中配置：
+
+- `OPENAI_BASE_URL`：兼容服务的 HTTPS API base，例如 `https://api.example.com/v1`。自动化会拼接 `/responses`；也可直接填写以 `/v1/responses` 结尾的地址。
+- `OPENAI_MODEL`：兼容服务实际提供的模型标识。
+
+兼容服务必须实现 OpenAI Responses API 的 `POST /v1/responses`，并支持 strict JSON Schema 输出。只兼容 `/v1/chat/completions` 的服务不能直接运行当前 Wiki 生成器。`OPENAI_BASE_URL` 不得包含用户名、密码、query 或 fragment。
+
+`master` 分支规则应要求 `Documentation site / validate` 通过、允许 squash merge，并允许 GitHub Actions Bot 在这些门槛通过后合并自动生成的文档 PR。如果规则要求人工 approval，Tag 流程会在合并步骤关闭失败，Wiki 不会自动发布。
 
 Actions 默认 token 保持只读。请求、验证与生成 job 只有读权限且 checkout 使用 `persist-credentials: false`；只有独立发布 job 获得 `contents: write` 和 `pull-requests: write`，该 job 不接收模型秘密。Pages 部署 job 单独获得 `pages: write` 与 `id-token: write`。
 

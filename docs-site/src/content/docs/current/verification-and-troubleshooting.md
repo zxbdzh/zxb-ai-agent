@@ -46,4 +46,4 @@ verificationCommands:
 - 自定义地址未生效：检查变量是否为 `OPENAI_BASEURL`。
 - 模型被拒绝：确认目标 OpenAI 兼容服务提供 `application.yaml` 中配置的模型标识。
 - `test` 等待：停止任务，改运行无密钥检查；仅在受控人工环境执行 `testChat()`。
-- 提交被拒绝：标题必须为带中文摘要的 `type(模块): 摘要`，检查点还必须满足[检查点维护](../../automation/checkpoints/)的 trailer 规则。
+- 提交被拒绝：标题必须为带中文摘要的 `type(模块): 摘要`。日常 Wiki 更新不需要 `Learning-*` trailers；代码合并后按[文档 Tag 自动更新](../../automation/checkpoints/)推送 `docs-v*` Tag。

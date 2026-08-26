@@ -5,6 +5,23 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      tag_docs_pr:
+        description: Generated documentation PR number; empty for a normal manual validation
+        required: false
+        type: string
+      tag_docs_branch:
+        description: Expected generated documentation branch
+        required: false
+        type: string
+      tag_docs_head_sha:
+        description: Expected generated documentation PR head SHA
+        required: false
+        type: string
+      tag_docs_base_sha:
+        description: Expected master SHA used as the generated PR base
+        required: false
+        type: string
 
 concurrency:
   group: pages
@@ -19,7 +36,9 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
@@ -34,7 +53,7 @@ jobs:
       - name: Validate schemas, Markdown, guides, records, and TypeScript
         working-directory: docs-site
         env:
-          EVOLUTION_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EVOLUTION_BASE_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.tag_docs_pr != '' && inputs.tag_docs_base_sha || github.event.pull_request.base.sha || github.event.before }}
         run: |
           npm run check
           npm run check:evolution-immutability
@@ -66,6 +85,42 @@ jobs:
             docs-site/test-results/
             docs-site/lighthouse-results/
             docs-site/dist/pagefind/
+
+  merge-tag-docs:
+    if: github.event_name == 'workflow_dispatch' && inputs.tag_docs_pr != ''
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Reconfirm PR identity and squash merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.tag_docs_pr }}
+          EXPECTED_BRANCH: ${{ inputs.tag_docs_branch }}
+          EXPECTED_SHA: ${{ inputs.tag_docs_head_sha }}
+          EXPECTED_BASE_SHA: ${{ inputs.tag_docs_base_sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ || ! "$EXPECTED_BRANCH" =~ ^docs/tag-docs-v[0-9]+(\.[0-9]+){2}(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$ || ! "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ || ! "$EXPECTED_BASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            exit 1
+          fi
+          test "$(gh api "repos/${{ github.repository }}/git/ref/heads/master" --jq .object.sha)" = "$EXPECTED_BASE_SHA"
+          gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json author,baseRefName,baseRefOid,files,headRefName,headRefOid,state > pr.json
+          author_login="$(jq -r .author.login pr.json)"
+          if [[ "$author_login" != "github-actions[bot]" && "$author_login" != "app/github-actions" ]]; then
+            exit 1
+          fi
+          test "$(jq -r .baseRefName pr.json)" = "master"
+          test "$(jq -r .baseRefOid pr.json)" = "$EXPECTED_BASE_SHA"
+          test "$(jq -r .headRefName pr.json)" = "$EXPECTED_BRANCH"
+          test "$(jq -r .headRefOid pr.json)" = "$EXPECTED_SHA"
+          test "$(jq -r .state pr.json)" = "OPEN"
+          jq -e 'all(.files[].path; startswith("docs-site/src/content/docs/current/") or startswith("docs-site/src/content/docs/evolution/") or startswith("docs-site/public/evidence/"))' pr.json >/dev/null
+          gh pr merge "$PR_NUMBER" --repo "${{ github.repository }}" --squash --delete-branch
+          gh workflow run docs-site.yml --repo "${{ github.repository }}" --ref master
 
   build-pages:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'

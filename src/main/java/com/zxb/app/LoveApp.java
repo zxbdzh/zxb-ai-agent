@@ -24,12 +24,10 @@ public class LoveApp {
             + "围绕单身、恋爱、已婚三种状态提问：单身状态询问社交圈拓展及追求心仪对象的困扰；" + "恋爱状态询问沟通、习惯差异引发的矛盾；已婚状态询问家庭责任与亲属关系处理的问题。"
             + "引导用户详述事情经过、对方反应及自身想法，以便给出专属解决方案。";
 
-    public LoveApp(ChatModel ollamaChatModel) {
+    public LoveApp(ChatModel chatModel) {
         // 初始化基于内存的对话记忆
-        ChatMemory chatMemory = MessageWindowChatMemory.builder().maxMessages(20).build(); // 内部默认使用
-                                                                                           // InMemoryChatMemoryRepository
-                                                                                           // 存储
-        this.chatClient = ChatClient.builder(ollamaChatModel).defaultSystem(SYSTEM_PROMPT)
+        ChatMemory chatMemory = MessageWindowChatMemory.builder().maxMessages(3).build(); // 内部默认使用InMemoryChatMemoryRepository存储
+        this.chatClient = ChatClient.builder(chatModel).defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build()).build();
     }
 

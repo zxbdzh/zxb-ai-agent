@@ -1,32 +1,51 @@
 ---
-title: 学习检查点
-description: 提交 trailer、生成触发和恢复流程。
+title: 文档 Tag 自动更新
+description: 推送 docs-v* Tag 后由 AI 生成、验证、合并并发布 Wiki。
 docType: automation
 ---
 
-## 提交格式
+## 日常入口
 
-普通提交不得包含任何 `Learning-*` trailer。检查点必须在提交信息末尾的同一个 trailer 块中，各出现一次且非空：
+一批代码合并到 `master` 后，为当前远端 `master` HEAD 创建并推送文档 Tag：
 
-```text
-Learning-Checkpoint: 本次学习检查点的简短主题
-Learning-Motivation: 为什么此变化值得未来维护者理解
-Learning-Outcome: 作者确认的学习结论
-Learning-Guide: conversation-memory#lifecycle
+```bash
+git switch master
+git pull --ff-only
+git tag docs-v1.0.0
+git push origin docs-v1.0.0
 ```
 
-`Learning-Guide` 可省略；存在时只能出现一次，并且必须命中自动化中的页面与章节 allowlist。前三个 trailer 构成原子契约：主题、动机和结论都由作者提供并原文保留。运维影响由生成器依据仓库与引用证据形成，不作为作者 trailer。未知、部分、重复、空白或格式错误的 `Learning-*` 元数据都会使提交失败。trailer 还要通过秘密检测，不能把密钥或 token 作为学习内容提交。
+Tag 必须匹配 `docs-vMAJOR.MINOR.PATCH`，也允许 `docs-v2.0.0-rc.1` 形式的预发布后缀。Tag 必须指向当前远端 `master` HEAD；不得移动或复用已经发布的 Tag。
 
-## 触发与重跑
+## 自动流程
 
-`master` push 的请求工作流枚举 `before..after` 中每个提交，因此一次 push 中较早的检查点不会被遗漏。人工重跑必须在 Actions 页面选择 `master` ref 并输入完整 SHA；请求工作流没有模型秘密和写权限。
+`Documentation tag generation` 依次执行：
 
-后续处理由独立 `workflow_run` 工作流完成。它只签出 `refs/heads/master` 的自动化代码，重新确认每个 SHA 是当前 `origin/master` 的祖先且仍有完整 trailer。检查点身份始终是完整 40 位 SHA。
+1. 找到目标 Tag 与前一个可达的 `docs-v*` Tag；首个 Tag 建立全量基线。
+2. 在目标 Tag checkout 上运行固定、无秘密的 Gradle 验证。
+3. 把受限仓库快照、Tag 区间 Git diff 和 Current Guide evidence 影响传给 AI。
+4. 生成一篇版本演进记录，并更新事实发生变化的 allowlisted Current Guide 区段。
+5. 创建固定分支 `docs/tag-<tag>` 上的 PR。
+6. 在该 PR 的精确 head SHA 上运行完整文档 CI。
+7. CI 通过后，确认机器人作者、分支、SHA 和变更路径，再 squash 合并。
+8. 合并 job 显式在 `master` 启动文档 workflow，重新验证并发布 Pages；不依赖 Bot push 递归触发。
 
-每个 SHA 对应固定分支和一个终身 PR。开放 PR 被更新，关闭但未合并的 PR 被重新打开，已合并 PR 是终态；发现多个同 SHA PR 时流程关闭失败。
+每个 Tag 都会产生版本演进记录。Current Guide 的 `verifiedAgainst`、`verifiedAt` 和 evidence sidecar 由可信脚本写入，模型不能决定或伪造验证基线。
 
-## 发布边界
+## 失败与重跑
 
-无秘密验证、模型生成和写入发布位于分离 job。模型秘密只释放给受保护的 `learning-checkpoint-generation` environment；该 job 只有 `contents: read`，checkout 不保留凭据，也不运行 Gradle 或模型建议命令。发布 job 有写权限但没有模型秘密。
+同名 Tag 重复 push 不会产生新的 Git 事件。在 PR 尚未合并且流程失败时，可在 Actions 页面手动运行 `Documentation tag generation`，输入已有 Tag 名重跑。生成分支和 PR 名称是确定的；开放 PR 会被更新，关闭但未合并的 PR 会重新打开，已经合并的同 Tag PR 是终态，不应再次重跑。
 
-可选指南变更只能替换一个 allowlisted 章节正文，不会自动更新页面级 `verifiedAgainst` 或 `verifiedAt`。这类 PR 合并前仍需审查整页；证据文件变动造成的页面过期必须由人工复核后单独重新盖章。
+以下情况会关闭失败，不会发布：
+
+- Tag 名不符合约定或不指向当前 `master` HEAD；
+- 前一个文档 Tag 不在目标 Tag 的 `master` first-parent 历史上；
+- 固定 Gradle 验证失败；
+- 仓库语料、diff 或模型输出触发大小、秘密或 schema 守卫；
+- AI 引用目标 Tag 中不存在的文件，或试图修改 allowlist 以外的指南区段；
+- 完整文档 CI、浏览器、axe、Lighthouse、链接、搜索或依赖检查失败；
+- PR 作者、head SHA、分支或变更路径与可信请求不一致。
+
+## 历史兼容
+
+旧 Learning Checkpoint trailer 流程只保留手动 dispatch，用于处理已有检查点。普通 Wiki 更新不再要求在提交消息里填写 `Learning-*` trailers。

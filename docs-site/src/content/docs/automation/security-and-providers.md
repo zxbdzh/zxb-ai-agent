@@ -14,11 +14,13 @@ docType: automation
 
 ## 提供方
 
-`SearchProvider` 与 `GenerationProvider` 分离。生成流程始终通过搜索适配器执行受限原生 `web_search`：最多两次查询、总来源最多八个；生成适配器要求 OpenAI Responses API 返回 strict JSON schema。每个外部引用 URL 必须精确出现在本次 `SearchProvider` 返回集合中，模型不能自造引用。schema 修复最多两次，每次有输入大小和超时限制。提供方 schema 只使用支持的结构，URL、HTTPS、官方 host、中文内容和完整身份在本地再次验证。
+Tag 驱动的日常流程只使用 `GenerationProvider`，不执行开放式 Web 搜索。生成器通过 `OPENAI_BASE_URL` 连接兼容服务的 `POST /v1/responses`；该 base 必须是无凭据、query 和 fragment 的 HTTPS URL。兼容服务必须支持 Responses API 和 strict JSON Schema。生成器只接收目标 Tag 的受保护仓库语料、两个文档 Tag 之间的有界 Git diff、Current Guide evidence 影响和固定 allowlist；输出在本地再次验证身份、中文内容、引用路径、目标区段、大小和秘密模式。模型只能引用目标 Tag 内实际存在的仓库文件。
+
+历史 Learning Checkpoint 手动兼容流程仍保留分离的 `SearchProvider` 与 `GenerationProvider`。该路径最多两次查询、总来源最多八个，外部引用必须精确命中当前搜索结果和受控 HTTPS 规则。两种路径的 schema 修复都最多两次，并有输入大小和超时限制。
 
 ## 引用等级
 
-- `repository`：指定检查点提交中的语料路径，是项目事实的首选证据。
+- `repository`：目标 Tag 提交中的语料路径，是 Tag 自动更新唯一允许的引用，也是项目事实的首选证据。
 - `official`：仅允许受控官方 HTTPS host，可支持外部 API 或工具事实。
 - `secondary`：必须使用 HTTPS，仅作背景，不足以推翻仓库或官方证据。
 

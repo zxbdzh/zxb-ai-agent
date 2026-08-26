@@ -24,6 +24,7 @@
     "test:static": "playwright test tests/static-output.spec.ts",
     "test:axe": "playwright test tests/accessibility.spec.ts",
     "checkpoint:generate": "tsx scripts/generate-checkpoint.ts",
+    "tag-docs:generate": "tsx scripts/generate-tag-docs.ts",
     "lighthouse:desktop": "lhci autorun --config=./lighthouserc.cjs",
     "lighthouse:mobile": "lhci autorun --config=./lighthouserc.mobile.cjs",
     "lighthouse": "npm run lighthouse:desktop && npm run lighthouse:mobile"

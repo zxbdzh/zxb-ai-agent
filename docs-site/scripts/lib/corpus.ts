@@ -14,25 +14,28 @@ const GENERATED_NAMES = /(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/
 const CREDENTIAL_NAMES = /(^|\/)(\.env(?:\..*)?|credentials\.json)$/i;
 const CREDENTIAL_EXTENSIONS = /\.(?:pem|key|p12|pfx|jks)$/i;
 
-function pathRule(path: string): string | undefined {
+function pathRule(path: string, extraExcludedPrefixes: readonly string[] = []): string | undefined {
   if (path.startsWith('/') || path.includes('\\') || path.split('/').includes('..')) return 'unsafe-path';
-  if (EXCLUDED_PREFIXES.some((prefix) => path.startsWith(prefix)) || GENERATED_NAMES.test(path)) return 'generated-or-vendor-path';
+  if (EXCLUDED_PREFIXES.some((prefix) => path.startsWith(prefix)) || extraExcludedPrefixes.some((prefix) => path.startsWith(prefix)) || GENERATED_NAMES.test(path)) return 'generated-or-vendor-path';
   if (CREDENTIAL_NAMES.test(path) || CREDENTIAL_EXTENSIONS.test(path)) return 'credential-path';
   return undefined;
 }
 
-export async function buildCorpus(runner: CommandRunner, repositoryRoot: string, requestedSha: string): Promise<Corpus> {
+export async function buildCorpus(runner: CommandRunner, repositoryRoot: string, requestedSha: string, options: { excludedPrefixes?: readonly string[] } = {}): Promise<Corpus> {
   const sha = assertFullSha(requestedSha);
   const listing = await runner.run(['git', 'ls-tree', '-r', '-z', '--name-only', sha], { cwd: repositoryRoot });
   if (listing.exitCode !== 0) throw new Error('git ls-tree failed');
   const paths = listing.stdout.toString('utf8').split('\0').filter(Boolean);
-  if (paths.length > MAX_FILES) throw new Error(`tracked file limit exceeded (${MAX_FILES})`);
+  const extraExcludedPrefixes = options.excludedPrefixes ?? [];
+  if (extraExcludedPrefixes.some((prefix) => !prefix || prefix.startsWith('/') || prefix.includes('\\') || prefix.split('/').includes('..'))) throw new Error('invalid corpus exclusion prefix');
+  const eligibleCount = paths.filter((path) => pathRule(path, extraExcludedPrefixes) === undefined).length;
+  if (eligibleCount > MAX_FILES) throw new Error(`tracked file limit exceeded (${MAX_FILES})`);
 
   const files: CorpusFile[] = [];
   const excluded: GuardFinding[] = [];
   let totalBytes = 0;
   for (const path of paths) {
-    const rule = pathRule(path);
+    const rule = pathRule(path, extraExcludedPrefixes);
     if (rule) { excluded.push({ path, rule }); continue; }
     const sizeResult = await runner.run(['git', 'cat-file', '-s', `${sha}:${path}`], { cwd: repositoryRoot });
     if (sizeResult.exitCode !== 0) throw new Error(`git cat-file failed for tracked path: ${path}`);

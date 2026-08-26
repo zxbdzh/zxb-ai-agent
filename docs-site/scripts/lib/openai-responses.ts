@@ -1,13 +1,13 @@
 import type { GenerationProvider, SearchProvider, SearchSource } from './providers.js';
 import { generationJsonSchema } from './schema.js';
+import { responsesEndpoint } from './openai-endpoint.js';
 
-const RESPONSES_URL = 'https://api.openai.com/v1/responses';
 const MAX_SEARCHES = 2;
 const MAX_SOURCES = 8;
 const MAX_EXCERPT = 2000;
 
 async function responseJson(apiKey: string, body: unknown, signal: AbortSignal): Promise<Record<string, unknown>> {
-  const response = await fetch(RESPONSES_URL, {
+  const response = await fetch(responsesEndpoint(), {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

@@ -45,7 +45,9 @@ docs-site/test-results/
 docs-site/lighthouse-results/
 docs-site/.lighthouseci/
 docs-site/.generated/
+docs-site/.generated-tag/
 docs-site/.verification/
+docs-site/.tag-verification/
 docs-site/.checkpoint-request/
 
 ### Local agent and credentials ###
