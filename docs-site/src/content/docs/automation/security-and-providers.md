@@ -14,7 +14,9 @@ docType: automation
 
 ## 提供方
 
-Tag 驱动的日常流程只使用 `GenerationProvider`，不执行开放式 Web 搜索。生成器通过 `OPENAI_BASE_URL` 连接兼容服务的 `POST /v1/responses`；该 base 必须是无凭据、query 和 fragment 的 HTTPS URL。如果 Responses 请求成功但最终文本没有 JSON 对象，适配器才会使用同一 base 的 `POST /v1/chat/completions` 和 `response_format: json_object` 回退；HTTP 鉴权、限流和服务端错误不会被回退掩盖。无论使用哪条协议，输出都在本地再次执行同一套 strict schema、身份、中文内容、引用路径、目标区段、大小和秘密模式验证。生成器只接收目标 Tag 的受保护仓库语料、两个成功文档 Tag 之间的有界 Git diff、Current Guide evidence 影响和固定 allowlist；模型只能引用目标 Tag 内实际存在的仓库文件。
+Tag 驱动的日常流程只使用 `GenerationProvider`，不执行开放式 Web 搜索。生成器通过 `OPENAI_BASE_URL` 连接兼容服务的 `POST /v1/responses`；该 base 必须是无凭据、query 和 fragment 的 HTTPS URL。如果 Responses 请求成功但最终文本没有 JSON 对象，适配器才会使用同一 base 的 `POST /v1/chat/completions` 和 `response_format: json_object` 回退；HTTP 鉴权、限流和服务端错误不会被回退掩盖。两条路径都显式申请最多 20,000 个输出 token。无论使用哪条协议，输出都在本地再次执行同一套 strict schema、身份、中文内容、引用路径、目标区段、大小和秘密模式验证。
+
+Tag 模型语料使用正向 allowlist，只包含 `src/`、五篇 Current Guides 与受选根项目配置。Workflow、自动化 scripts/tests、历史记录、evidence 和 research 不会发送给模型。生成器还接收两个成功文档 Tag 之间的有界 Git diff、Current Guide evidence 影响和固定目标区段 allowlist；模型只能引用目标 Tag 内且进入该受保护语料的文件。
 
 历史 Learning Checkpoint 手动兼容流程仍保留分离的 `SearchProvider` 与 `GenerationProvider`。该路径最多两次查询、总来源最多八个，外部引用必须精确命中当前搜索结果和受控 HTTPS 规则。两种路径的 schema 修复都最多两次，并有输入大小和超时限制。
 

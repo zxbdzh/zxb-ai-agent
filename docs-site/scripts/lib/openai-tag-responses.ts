@@ -37,6 +37,7 @@ export class OpenAITagGenerationProvider implements GenerationProvider {
   async generate(input: string, signal: AbortSignal): Promise<TagGenerationOutput> {
     const response = await responseJson(this.apiKey, {
       model: this.model,
+      max_output_tokens: 20_000,
       input: [
         { role: 'developer', content: DEVELOPER_INSTRUCTION },
         { role: 'user', content: input },

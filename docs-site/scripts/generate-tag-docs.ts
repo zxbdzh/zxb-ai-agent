@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { assertFullSha } from './lib/identity.js';
 import { assertNoSensitiveData, assertNoSensitiveValues } from './lib/sensitive-data.js';
 import { FixedGitRunner } from './lib/command-runner.js';
-import { buildCorpus, serializeCorpus } from './lib/corpus.js';
+import { buildCorpus, serializeCorpus, TAG_CORPUS_OPTIONS } from './lib/corpus.js';
 import { OpenAITagGenerationProvider } from './lib/openai-tag-responses.js';
 import { generateTagWithRepairs, tagGenerationPrompt, validateTagGeneratedOutput, type GuideImpact, type TagGenerationIdentity } from './lib/tag-generation.js';
 import { assertDocsTag } from './lib/tag-schema.js';
@@ -65,12 +65,7 @@ if (baseSha === null) {
 }
 assertNoSensitiveData(diffText, 'tag-diff');
 
-const corpus = await buildCorpus(runner, repositoryRoot, targetSha, {
-  excludedPrefixes: [
-    'docs-site/src/content/docs/evolution/',
-    'docs-site/public/evidence/',
-  ],
-});
+const corpus = await buildCorpus(runner, repositoryRoot, targetSha, TAG_CORPUS_OPTIONS);
 const currentGuideRoot = path.join(siteRoot, 'src/content/docs/current');
 const guideImpacts: GuideImpact[] = [];
 for (const filename of (await readdir(currentGuideRoot)).filter((name) => name.endsWith('.md')).sort()) {

@@ -22,6 +22,7 @@ Tag 必须匹配 `docs-vMAJOR.MINOR.PATCH`，也允许 `docs-v2.0.0-rc.1` 形式
 `Documentation tag generation` 依次执行：
 
 1. 找到目标 Tag 与前一个已经把版本化 evidence 提交到 `master` 的可达 `docs-v*` Tag；失败 Tag 不会成为比较基线，首个成功 Tag 建立全量基线。
+2. 从目标 Tag 构建正向 allowlist 语料：`src/`、Current Guides 与受选根项目配置；自动化、历史记录、evidence 和 research 不进入模型输入。
 2. 在目标 Tag checkout 上运行固定、无秘密的 Gradle 验证。
 3. 把受限仓库快照、Tag 区间 Git diff 和 Current Guide evidence 影响传给 AI。
 4. 生成一篇版本演进记录，并更新事实发生变化的 allowlisted Current Guide 区段。

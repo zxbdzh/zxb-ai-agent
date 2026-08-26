@@ -6,7 +6,7 @@ import { applyGuideSection } from './lib/guide-patch.js';
 import { validateTagStagedOutput } from './lib/tag-staged-output.js';
 import { assertNoSensitiveData } from './lib/sensitive-data.js';
 import { FixedGitRunner } from './lib/command-runner.js';
-import { buildCorpus } from './lib/corpus.js';
+import { buildCorpus, TAG_CORPUS_OPTIONS } from './lib/corpus.js';
 import { validateTagGeneratedOutput } from './lib/tag-generation.js';
 
 const staging = process.argv[2];
@@ -19,12 +19,7 @@ if (relative.startsWith('..') || path.isAbsolute(relative) || relative === '') t
 const rawManifest = JSON.parse(await readFile(path.join(stagingRoot, 'manifest.json'), 'utf8')) as { targetSha?: unknown };
 if (typeof rawManifest.targetSha !== 'string') throw new Error('tag manifest is missing target SHA');
 const { manifest, generated } = await validateTagStagedOutput(stagingRoot, rawManifest.targetSha);
-const corpus = await buildCorpus(new FixedGitRunner(), repositoryRoot, manifest.targetSha, {
-  excludedPrefixes: [
-    'docs-site/src/content/docs/evolution/',
-    'docs-site/public/evidence/',
-  ],
-});
+const corpus = await buildCorpus(new FixedGitRunner(), repositoryRoot, manifest.targetSha, TAG_CORPUS_OPTIONS);
 validateTagGeneratedOutput(generated, {
   targetSha: manifest.targetSha,
   baseSha: manifest.baseSha,

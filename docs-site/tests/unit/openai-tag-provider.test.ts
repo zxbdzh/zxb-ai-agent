@@ -21,9 +21,11 @@ const output: TagGenerationOutput = {
 
 test('tag provider falls back from non-JSON Responses output to Chat Completions JSON mode', async (context) => {
   const urls: string[] = [];
-  context.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+  const requestBodies: Array<Record<string, unknown>> = [];
+  context.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
     urls.push(url);
+    requestBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
     if (url.endsWith('/responses')) {
       return new Response(JSON.stringify({ output_text: '我将先分析仓库内容，然后生成文档。' }), {
         status: 200,
@@ -41,6 +43,8 @@ test('tag provider falls back from non-JSON Responses output to Chat Completions
     const result = await new OpenAITagGenerationProvider('secret', 'model').generate('prompt', AbortSignal.timeout(1000));
     assert.equal(result.tag, output.tag);
     assert.deepEqual(urls, ['https://example.com/v1/responses', 'https://example.com/v1/chat/completions']);
+    assert.equal(requestBodies[0]?.max_output_tokens, 20_000);
+    assert.equal(requestBodies[1]?.max_tokens, 20_000);
   } finally {
     if (previousBaseUrl === undefined) delete process.env.OPENAI_BASE_URL;
     else process.env.OPENAI_BASE_URL = previousBaseUrl;

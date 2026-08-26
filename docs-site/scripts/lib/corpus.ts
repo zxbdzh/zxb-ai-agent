@@ -5,6 +5,17 @@ import { findSensitiveData, SensitiveDataError } from './sensitive-data.js';
 export interface CorpusFile { path: string; text: string }
 export interface GuardFinding { path: string; rule: string }
 export interface Corpus { sha: string; files: readonly CorpusFile[]; excluded: readonly GuardFinding[]; totalBytes: number }
+export interface CorpusOptions {
+  excludedPrefixes?: readonly string[];
+  excludedPaths?: readonly string[];
+  includedPrefixes?: readonly string[];
+  includedPaths?: readonly string[];
+}
+
+export const TAG_CORPUS_OPTIONS: CorpusOptions = {
+  includedPrefixes: ['src/', 'docs-site/src/content/docs/current/'],
+  includedPaths: ['build.gradle', 'settings.gradle', 'README.md', 'CLAUDE.md', 'CONTEXT.md'],
+};
 
 const MAX_FILES = 500;
 const MAX_FILE_BYTES = 256 * 1024;
@@ -14,28 +25,41 @@ const GENERATED_NAMES = /(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/
 const CREDENTIAL_NAMES = /(^|\/)(\.env(?:\..*)?|credentials\.json)$/i;
 const CREDENTIAL_EXTENSIONS = /\.(?:pem|key|p12|pfx|jks)$/i;
 
-function pathRule(path: string, extraExcludedPrefixes: readonly string[] = []): string | undefined {
+function pathRule(
+  path: string,
+  extraExcludedPrefixes: readonly string[] = [],
+  extraExcludedPaths: ReadonlySet<string> = new Set(),
+  includedPrefixes: readonly string[] = [],
+  includedPaths: ReadonlySet<string> = new Set(),
+): string | undefined {
   if (path.startsWith('/') || path.includes('\\') || path.split('/').includes('..')) return 'unsafe-path';
-  if (EXCLUDED_PREFIXES.some((prefix) => path.startsWith(prefix)) || extraExcludedPrefixes.some((prefix) => path.startsWith(prefix)) || GENERATED_NAMES.test(path)) return 'generated-or-vendor-path';
+  if (includedPrefixes.length > 0 || includedPaths.size > 0) {
+    if (!includedPrefixes.some((prefix) => path.startsWith(prefix)) && !includedPaths.has(path)) return 'outside-corpus-scope';
+  }
+  if (EXCLUDED_PREFIXES.some((prefix) => path.startsWith(prefix)) || extraExcludedPrefixes.some((prefix) => path.startsWith(prefix)) || extraExcludedPaths.has(path) || GENERATED_NAMES.test(path)) return 'generated-or-vendor-path';
   if (CREDENTIAL_NAMES.test(path) || CREDENTIAL_EXTENSIONS.test(path)) return 'credential-path';
   return undefined;
 }
 
-export async function buildCorpus(runner: CommandRunner, repositoryRoot: string, requestedSha: string, options: { excludedPrefixes?: readonly string[] } = {}): Promise<Corpus> {
+export async function buildCorpus(runner: CommandRunner, repositoryRoot: string, requestedSha: string, options: CorpusOptions = {}): Promise<Corpus> {
   const sha = assertFullSha(requestedSha);
   const listing = await runner.run(['git', 'ls-tree', '-r', '-z', '--name-only', sha], { cwd: repositoryRoot });
   if (listing.exitCode !== 0) throw new Error('git ls-tree failed');
   const paths = listing.stdout.toString('utf8').split('\0').filter(Boolean);
   const extraExcludedPrefixes = options.excludedPrefixes ?? [];
-  if (extraExcludedPrefixes.some((prefix) => !prefix || prefix.startsWith('/') || prefix.includes('\\') || prefix.split('/').includes('..'))) throw new Error('invalid corpus exclusion prefix');
-  const eligibleCount = paths.filter((path) => pathRule(path, extraExcludedPrefixes) === undefined).length;
+  const extraExcludedPaths = new Set(options.excludedPaths ?? []);
+  const includedPrefixes = options.includedPrefixes ?? [];
+  const includedPaths = new Set(options.includedPaths ?? []);
+  if ([...extraExcludedPrefixes, ...includedPrefixes].some((prefix) => !prefix || prefix.startsWith('/') || prefix.includes('\\') || prefix.split('/').includes('..'))) throw new Error('invalid corpus prefix');
+  if ([...extraExcludedPaths, ...includedPaths].some((path) => !path || path.startsWith('/') || path.includes('\\') || path.split('/').includes('..'))) throw new Error('invalid corpus path');
+  const eligibleCount = paths.filter((path) => pathRule(path, extraExcludedPrefixes, extraExcludedPaths, includedPrefixes, includedPaths) === undefined).length;
   if (eligibleCount > MAX_FILES) throw new Error(`tracked file limit exceeded (${MAX_FILES})`);
 
   const files: CorpusFile[] = [];
   const excluded: GuardFinding[] = [];
   let totalBytes = 0;
   for (const path of paths) {
-    const rule = pathRule(path, extraExcludedPrefixes);
+    const rule = pathRule(path, extraExcludedPrefixes, extraExcludedPaths, includedPrefixes, includedPaths);
     if (rule) { excluded.push({ path, rule }); continue; }
     const sizeResult = await runner.run(['git', 'cat-file', '-s', `${sha}:${path}`], { cwd: repositoryRoot });
     if (sizeResult.exitCode !== 0) throw new Error(`git cat-file failed for tracked path: ${path}`);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildCorpus, CorpusGuardError } from '../../scripts/lib/corpus.js';
+import { buildCorpus, CorpusGuardError, TAG_CORPUS_OPTIONS } from '../../scripts/lib/corpus.js';
 import type { CommandResult, CommandRunner } from '../../scripts/lib/command-runner.js';
 
 class FixtureRunner implements CommandRunner {
@@ -35,6 +35,28 @@ test('corpus uses fixed git argv and excludes generated and credential paths bef
   ]);
   assert.deepEqual(corpus.files.map((file) => file.path), ['src/App.java']);
   assert.deepEqual(corpus.excluded.map((item) => item.rule), ['generated-or-vendor-path', 'credential-path']);
+});
+
+test('tag corpus includes only application facts, Current Guides, and root project context', async () => {
+  const runner = new FixtureRunner({
+    'src/main/java/App.java': Buffer.from('class App {}'),
+    'docs-site/src/content/docs/current/setup.md': Buffer.from('当前指南'),
+    'build.gradle': Buffer.from('plugins {}'),
+    '.github/workflows/documentation-tag.yml': Buffer.from('workflow'),
+    'docs-site/scripts/generate-tag-docs.ts': Buffer.from('automation'),
+    'docs/research/old.md': Buffer.from('research'),
+  });
+  const corpus = await buildCorpus(runner, 'repo', sha, TAG_CORPUS_OPTIONS);
+  assert.deepEqual(corpus.files.map((file) => file.path), [
+    'src/main/java/App.java',
+    'docs-site/src/content/docs/current/setup.md',
+    'build.gradle',
+  ]);
+  assert.deepEqual(corpus.excluded.filter((item) => item.rule === 'outside-corpus-scope').map((item) => item.path), [
+    '.github/workflows/documentation-tag.yml',
+    'docs-site/scripts/generate-tag-docs.ts',
+    'docs/research/old.md',
+  ]);
 });
 
 test('corpus supports bounded caller exclusions before enforcing the file limit', async () => {

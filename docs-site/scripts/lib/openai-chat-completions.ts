@@ -26,6 +26,7 @@ export async function chatCompletionJson(
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model,
+      max_tokens: 20_000,
       messages: [
         { role: 'system', content: developerInstruction },
         { role: 'user', content: input },
