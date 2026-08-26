@@ -35,12 +35,12 @@ Configure these values before pushing the first documentation tag:
 | GitHub setting | Kind | Example | Purpose |
 |---|---|---|---|
 | `OPENAI_API_KEY` | Environment secret | `sk-...` | Compatible service credential |
-| `OPENAI_BASE_URL` | Repository variable or secret | `https://api.example.com/v1` | Responses API base; the generator appends `/responses` |
+| `OPENAI_BASE_URL` | Repository variable or secret | `https://api.example.com/v1` | OpenAI-compatible API base |
 | `OPENAI_MODEL` | Repository variable or secret | `your-model-id` | Model exposed by the compatible service |
 
 - Keep `OPENAI_API_KEY` in the protected `learning-checkpoint-generation` environment. Its deployment branch/tag policy must allow `docs-v*` tags; a required reviewer can remain enabled.
-- `OPENAI_BASE_URL` must be an HTTPS URL without credentials, query, or fragment. The adapter appends `/responses` and can tolerate a provider that wraps the JSON object in explanatory text or a Markdown code fence; the final object still must pass the local strict schema.
-- The compatible service must implement `POST /v1/responses` and strict JSON Schema output. A service that only implements `/v1/chat/completions` is not sufficient for this generator.
+- `OPENAI_BASE_URL` must be an HTTPS URL without credentials, query, or fragment. The primary request uses `/responses`; if that request succeeds but returns no JSON object, generation retries through `/chat/completions` with `response_format: json_object`. Every result must still pass the local strict schema.
+- The compatible service must implement `POST /v1/responses`. For providers that ignore Responses structured output, the same base must also implement `POST /v1/chat/completions`; a service exposing only Chat Completions is not sufficient because HTTP failures do not trigger protocol fallback.
 - Repository Actions must be allowed to create and approve pull requests.
 - Branch protection must allow the GitHub Actions bot to squash-merge after required checks. If rules require a human approval, the automatic merge step will intentionally stop.
 

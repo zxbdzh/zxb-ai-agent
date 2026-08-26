@@ -34,10 +34,10 @@ Repository Settings 中把 Pages Source 设为 GitHub Actions，并在 Actions �
 
 在 Repository variables 或 Repository secrets 中配置以下同名字段；workflow 优先读取 variable，缺失时读取 secret：
 
-- `OPENAI_BASE_URL`：兼容服务的 HTTPS API base，例如 `https://api.example.com/v1`。自动化会拼接 `/responses`；兼容服务即使在 JSON 外包裹解释文字或 Markdown 代码块，提取出的 JSON 仍必须通过本地严格 schema。
+- `OPENAI_BASE_URL`：兼容服务的 HTTPS API base，例如 `https://api.example.com/v1`。主请求使用 `/responses`；如果该请求 HTTP 成功但最终文本没有 JSON 对象，适配器会使用同一 base 的 `/chat/completions` 与 `response_format: json_object` 回退。任一路径提取出的 JSON 都必须通过本地严格 schema。
 - `OPENAI_MODEL`：兼容服务实际提供的模型标识。
 
-兼容服务必须实现 OpenAI Responses API 的 `POST /v1/responses`，并支持 strict JSON Schema 输出。只兼容 `/v1/chat/completions` 的服务不能直接运行当前 Wiki 生成器。`OPENAI_BASE_URL` 不得包含用户名、密码、query 或 fragment。
+兼容服务必须实现 OpenAI Responses API 的 `POST /v1/responses`。如果它忽略 Responses structured output，还必须在同一 base 实现 `POST /v1/chat/completions`；只兼容 Chat Completions 的服务仍不能直接运行生成器，因为 Responses 的 HTTP 失败不会触发协议回退。`OPENAI_BASE_URL` 不得包含用户名、密码、query 或 fragment。
 
 `master` 分支规则应要求 `Documentation site / validate` 通过、允许 squash merge，并允许 GitHub Actions Bot 在这些门槛通过后合并自动生成的文档 PR。如果规则要求人工 approval，Tag 流程会在合并步骤关闭失败，Wiki 不会自动发布。
 
