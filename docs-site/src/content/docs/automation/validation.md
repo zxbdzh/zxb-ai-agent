@@ -34,7 +34,7 @@ Repository Settings 中把 Pages Source 设为 GitHub Actions，并在 Actions �
 
 在 Repository variables 或 Repository secrets 中配置以下同名字段；workflow 优先读取 variable，缺失时读取 secret：
 
-- `OPENAI_BASE_URL`：兼容服务的 HTTPS API base，例如 `https://api.example.com/v1`。自动化会拼接 `/responses`；也可直接填写以 `/v1/responses` 结尾的地址。
+- `OPENAI_BASE_URL`：兼容服务的 HTTPS API base，例如 `https://api.example.com/v1`。自动化会拼接 `/responses`；兼容服务即使在 JSON 外包裹解释文字或 Markdown 代码块，提取出的 JSON 仍必须通过本地严格 schema。
 - `OPENAI_MODEL`：兼容服务实际提供的模型标识。
 
 兼容服务必须实现 OpenAI Responses API 的 `POST /v1/responses`，并支持 strict JSON Schema 输出。只兼容 `/v1/chat/completions` 的服务不能直接运行当前 Wiki 生成器。`OPENAI_BASE_URL` 不得包含用户名、密码、query 或 fragment。

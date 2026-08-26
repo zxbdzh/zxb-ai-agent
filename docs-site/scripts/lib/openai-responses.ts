@@ -1,6 +1,7 @@
 import type { GenerationProvider, SearchProvider, SearchSource } from './providers.js';
 import { generationJsonSchema } from './schema.js';
 import { responsesEndpoint } from './openai-endpoint.js';
+import { extractJsonObject } from './openai-json.js';
 
 const MAX_SEARCHES = 2;
 const MAX_SOURCES = 8;
@@ -89,6 +90,6 @@ export class OpenAIResponsesGenerationProvider implements GenerationProvider {
         },
       },
     }, signal);
-    return JSON.parse(outputText(response));
+    return JSON.parse(extractJsonObject(outputText(response)));
   }
 }

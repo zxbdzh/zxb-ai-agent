@@ -1,6 +1,7 @@
 import type { GenerationProvider } from './providers.js';
 import { tagGenerationJsonSchema, tagGenerationOutputSchema, type TagGenerationOutput } from './tag-schema.js';
 import { responsesEndpoint } from './openai-endpoint.js';
+import { extractJsonObject } from './openai-json.js';
 
 
 async function responseJson(apiKey: string, body: unknown, signal: AbortSignal): Promise<Record<string, unknown>> {
@@ -40,6 +41,6 @@ export class OpenAITagGenerationProvider implements GenerationProvider {
       ],
       text: { format: { type: 'json_schema', name: 'tag_documentation', strict: true, schema: tagGenerationJsonSchema } },
     }, signal);
-    return tagGenerationOutputSchema.parse(JSON.parse(outputText(response)));
+    return tagGenerationOutputSchema.parse(JSON.parse(extractJsonObject(outputText(response))));
   }
 }
