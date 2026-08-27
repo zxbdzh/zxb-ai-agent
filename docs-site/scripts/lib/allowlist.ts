@@ -14,6 +14,8 @@ export const GUIDE_ALLOWLIST = {
 
 export type GuideTarget = keyof typeof GUIDE_ALLOWLIST;
 
+export const GUIDE_TARGETS = Object.keys(GUIDE_ALLOWLIST) as [GuideTarget, ...GuideTarget[]];
+
 export function assertGuideTarget(value: string | undefined): GuideTarget | undefined {
   if (value === undefined) return undefined;
   if (!(value in GUIDE_ALLOWLIST)) throw new Error(`Learning-Guide target is not allowlisted: ${value}`);

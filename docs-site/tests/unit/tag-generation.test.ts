@@ -5,6 +5,7 @@ import { tagGenerationPrompt, validateTagGeneratedOutput, generateTagWithRepairs
 import type { GenerationProvider } from '../../scripts/lib/providers.js';
 import { renderTagEvolutionRecord, tagEvolutionFilename } from '../../scripts/lib/tag-render.js';
 import { createVerificationEvidence } from '../../scripts/lib/verification.js';
+import { GUIDE_TARGETS } from '../../scripts/lib/allowlist.js';
 import YAML from 'yaml';
 
 const targetSha = 'a'.repeat(40);
@@ -36,7 +37,7 @@ test('tag generation validates immutable identity, repository citations, and uni
   assert.throws(() => validateTagGeneratedOutput({ ...output, targetSha: 'c'.repeat(40) }, identity, corpus));
   assert.throws(() => validateTagGeneratedOutput({ ...output, citations: [{ tier: 'repository', path: '../secret', note: '越界引用' }] }, identity, corpus));
   assert.throws(() => validateTagGeneratedOutput({ ...output, guideUpdates: [output.guideUpdates[0]!, output.guideUpdates[0]!] }, identity, corpus));
-  assert.throws(() => validateTagGeneratedOutput({ ...output, guideUpdates: [{ target: 'not-allowlisted', replacementMarkdown: '中文内容' }] }, identity, corpus));
+  assert.throws(() => validateTagGeneratedOutput({ ...output, guideUpdates: [{ target: 'not-allowlisted', replacementMarkdown: '中文内容' }] } as unknown as TagGenerationOutput, identity, corpus));
   assert.throws(() => validateTagGeneratedOutput({ ...output, guideUpdates: [] }, identity, corpus, [{ file: 'running-the-application.md', evidencePaths: ['src/App.java'], changedEvidencePaths: ['src/App.java'] }]));
   assert.doesNotThrow(() => validateTagGeneratedOutput(output, identity, corpus, [{ file: 'running-the-application.md', evidencePaths: ['src/App.java'], changedEvidencePaths: ['src/App.java'] }]));
 });
@@ -84,6 +85,15 @@ test('tag Evolution Record is deterministic and evidence-bound', () => {
   const parsed = YAML.parse(frontmatter[1]!) as Record<string, unknown>;
   assert.equal(parsed.checkpointDate, output.date);
   assert.equal(typeof parsed.checkpointDate, 'string');
+});
+
+test('OpenAI structured schema constrains guide targets to the runtime allowlist', () => {
+  const guideUpdates = tagGenerationJsonSchema.properties.guideUpdates;
+  assert.deepEqual(guideUpdates.items.properties.target.enum, GUIDE_TARGETS);
+  assert.throws(() => tagGenerationOutputSchema.parse({
+    ...output,
+    guideUpdates: [{ target: 'current/setup.md#前提', replacementMarkdown: '中文内容' }],
+  }));
 });
 
 test('OpenAI structured schema remains strict and declares all required tag fields', () => {

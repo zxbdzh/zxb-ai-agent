@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FULL_SHA, SLUG } from './identity.js';
+import { GUIDE_TARGETS } from './allowlist.js';
 
 export const DOCS_TAG = /^docs-v[0-9]+(?:\.[0-9]+){2}(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/;
 
@@ -24,7 +25,7 @@ export const tagGenerationOutputSchema = z.object({
   changeSummary: z.array(chineseLine).min(1).max(12),
   citations: z.array(repositoryCitationSchema).min(1).max(20),
   guideUpdates: z.array(z.object({
-    target: z.string().min(1),
+    target: z.enum(GUIDE_TARGETS),
     replacementMarkdown: chineseMarkdown.max(12000),
   }).strict()).max(11),
   suggestedChecks: z.array(z.enum(['docs-check', 'docs-build', 'gradle-style', 'gradle-build-no-tests'])).max(4),
@@ -55,7 +56,7 @@ export const tagGenerationJsonSchema = {
     },
     guideUpdates: {
       type: 'array', maxItems: 11,
-      items: { type: 'object', additionalProperties: false, required: ['target', 'replacementMarkdown'], properties: { target: { type: 'string', minLength: 1 }, replacementMarkdown: { ...chineseString, maxLength: 12000 } } },
+      items: { type: 'object', additionalProperties: false, required: ['target', 'replacementMarkdown'], properties: { target: { type: 'string', enum: GUIDE_TARGETS }, replacementMarkdown: { ...chineseString, maxLength: 12000 } } },
     },
     suggestedChecks: { type: 'array', maxItems: 4, items: { type: 'string', enum: ['docs-check', 'docs-build', 'gradle-style', 'gradle-build-no-tests'] } },
   },
