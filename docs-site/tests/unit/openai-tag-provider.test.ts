@@ -43,17 +43,30 @@ test('tag provider falls back from non-JSON Responses output to Chat Completions
     const result = await new OpenAITagGenerationProvider('secret', 'model').generate('prompt', AbortSignal.timeout(1000));
     assert.equal(result.tag, output.tag);
     assert.deepEqual(urls, ['https://example.com/v1/responses', 'https://example.com/v1/chat/completions']);
-    assert.equal(requestBodies[0]?.max_output_tokens, 20_000);
+    const responsesBody = requestBodies[0] as {
+      max_output_tokens?: number;
+      tools?: Array<{ name?: string; strict?: boolean; parameters?: unknown }>;
+      tool_choice?: { type?: string; name?: string };
+      parallel_tool_calls?: boolean;
+    };
+    assert.equal(responsesBody.max_output_tokens, 20_000);
+    assert.equal(responsesBody.tools?.[0]?.name, 'tag_documentation');
+    assert.equal(responsesBody.tools?.[0]?.strict, true);
+    assert.equal(responsesBody.tool_choice?.type, 'function');
+    assert.equal(responsesBody.tool_choice?.name, 'tag_documentation');
+    assert.equal(responsesBody.parallel_tool_calls, false);
     assert.equal(requestBodies[1]?.max_tokens, 20_000);
     const chatBody = requestBodies[1] as {
       tools?: Array<{ function?: { name?: string; strict?: boolean; parameters?: unknown } }>;
       tool_choice?: { function?: { name?: string } };
       parallel_tool_calls?: boolean;
+      reasoning_effort?: string;
     };
     assert.equal(chatBody.tools?.[0]?.function?.name, 'tag_documentation');
     assert.equal(chatBody.tools?.[0]?.function?.strict, true);
     assert.equal(chatBody.tool_choice?.function?.name, 'tag_documentation');
     assert.equal(chatBody.parallel_tool_calls, false);
+    assert.equal(chatBody.reasoning_effort, 'none');
   } finally {
     if (previousBaseUrl === undefined) delete process.env.OPENAI_BASE_URL;
     else process.env.OPENAI_BASE_URL = previousBaseUrl;
