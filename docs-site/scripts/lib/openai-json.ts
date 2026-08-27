@@ -3,6 +3,11 @@ export function extractJsonObject(text: string): string {
   const candidate = fenced?.trim() ?? text.trim();
   try {
     const value = JSON.parse(candidate) as unknown;
+    if (typeof value === 'string') {
+      const nested = JSON.parse(value) as unknown;
+      if (!nested || typeof nested !== 'object' || Array.isArray(nested)) throw new Error('JSON response must be an object');
+      return value;
+    }
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('JSON response must be an object');
     return candidate;
   } catch {

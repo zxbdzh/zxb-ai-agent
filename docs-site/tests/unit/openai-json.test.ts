@@ -7,6 +7,8 @@ test('JSON extraction accepts plain, fenced, and prose-wrapped objects', () => {
   assert.equal(extractJsonObject(object), object);
   assert.equal(extractJsonObject(`说明文字\n\n${object}\n\n结束说明`), object);
   assert.equal(extractJsonObject(`\`\`\`json\n${object}\n\`\`\``), object);
+  const quoted = JSON.stringify(object);
+  assert.equal(extractJsonObject(quoted), object);
 });
 
 test('JSON extraction ignores braces inside strings and rejects incomplete output', () => {

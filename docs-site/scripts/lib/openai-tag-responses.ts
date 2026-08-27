@@ -37,16 +37,22 @@ export class OpenAITagGenerationProvider implements GenerationProvider {
     let parsed: unknown;
     try {
       parsed = responsesJsonValue(response);
-    } catch {
-      parsed = await chatCompletionJson(
-        this.apiKey,
-        this.model,
-        DEVELOPER_INSTRUCTION,
-        input,
-        'tag_documentation',
-        tagGenerationJsonSchema,
-        signal,
-      );
+    } catch (responsesError) {
+      try {
+        parsed = await chatCompletionJson(
+          this.apiKey,
+          this.model,
+          DEVELOPER_INSTRUCTION,
+          input,
+          'tag_documentation',
+          tagGenerationJsonSchema,
+          signal,
+        );
+      } catch (chatError) {
+        const responsesCause = responsesError instanceof Error ? responsesError.message : String(responsesError);
+        const chatCause = chatError instanceof Error ? chatError.message : String(chatError);
+        throw new Error(`Structured output failed across both protocols. Responses: ${responsesCause}. Chat Completions: ${chatCause}`);
+      }
     }
     return tagGenerationOutputSchema.parse(parsed);
   }

@@ -1,7 +1,17 @@
 import { chatCompletionsEndpoint } from './openai-endpoint.js';
 import { extractJsonObject } from './openai-json.js';
 
-export function chatCompletionJsonValue(response: Record<string, unknown>): unknown {
+function argumentShape(value: unknown): string {
+  if (typeof value !== 'string') return value === null ? 'null' : typeof value;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return 'empty';
+  if (trimmed.startsWith('{')) return 'object';
+  if (trimmed.startsWith('[')) return 'array';
+  if (trimmed.startsWith('"')) return 'quoted';
+  return 'other';
+}
+
+export function chatCompletionJsonValue(response: Record<string, unknown>, expectedToolName?: string): unknown {
   const choices = Array.isArray(response.choices) ? response.choices : [];
   try {
     const first = choices[0];
@@ -14,8 +24,10 @@ export function chatCompletionJsonValue(response: Record<string, unknown>): unkn
     const firstToolCall = toolCalls[0];
     if (firstToolCall && typeof firstToolCall === 'object') {
       const fn = (firstToolCall as { function?: unknown }).function;
-      if (fn && typeof fn === 'object' && typeof (fn as { arguments?: unknown }).arguments === 'string') {
-        return JSON.parse(extractJsonObject((fn as { arguments: string }).arguments));
+      if (fn && typeof fn === 'object') {
+        const argumentsValue = (fn as { arguments?: unknown }).arguments;
+        if (typeof argumentsValue === 'string') return JSON.parse(extractJsonObject(argumentsValue));
+        if (argumentsValue && typeof argumentsValue === 'object' && !Array.isArray(argumentsValue)) return argumentsValue;
       }
     }
     const content = (message as { content?: unknown }).content;
@@ -30,10 +42,21 @@ export function chatCompletionJsonValue(response: Record<string, unknown>): unkn
       ? choice.message as Record<string, unknown>
       : {};
     const toolCalls = Array.isArray(message.tool_calls) ? message.tool_calls : [];
+    const firstToolCall = toolCalls[0];
+    const fn = firstToolCall && typeof firstToolCall === 'object'
+      && (firstToolCall as { function?: unknown }).function
+      && typeof (firstToolCall as { function: unknown }).function === 'object'
+      ? (firstToolCall as { function: Record<string, unknown> }).function
+      : {};
+    const functionNameMatches = expectedToolName === undefined
+      ? 'unknown'
+      : String(fn.name === expectedToolName);
+    const argumentsValue = fn.arguments;
+    const argumentsChars = typeof argumentsValue === 'string' ? argumentsValue.length : 0;
     const contentChars = typeof message.content === 'string' ? message.content.length : 0;
     const finishReason = typeof choice.finish_reason === 'string' ? choice.finish_reason : 'unknown';
     const cause = error instanceof Error ? error.message : String(error);
-    throw new Error(`Chat Completions structured output invalid: choices=${choices.length}; finish_reason=${finishReason}; tool_calls=${toolCalls.length}; content_chars=${contentChars}; cause=${cause}`);
+    throw new Error(`Chat Completions structured output invalid: choices=${choices.length}; finish_reason=${finishReason}; tool_calls=${toolCalls.length}; function_name_matches=${functionNameMatches}; arguments_type=${argumentsValue === null ? 'null' : typeof argumentsValue}; arguments_chars=${argumentsChars}; arguments_shape=${argumentShape(argumentsValue)}; content_chars=${contentChars}; cause=${cause}`);
   }
 }
 
@@ -74,5 +97,5 @@ export async function chatCompletionJson(
   });
   if (!response.ok) throw new Error(`OpenAI Chat Completions API failed with HTTP ${response.status}`);
   const body = await response.json() as Record<string, unknown>;
-  return chatCompletionJsonValue(body);
+  return chatCompletionJsonValue(body, toolName);
 }

@@ -84,16 +84,22 @@ export class OpenAIResponsesGenerationProvider implements GenerationProvider {
     }, signal);
     try {
       return responsesJsonValue(response);
-    } catch {
-      return await chatCompletionJson(
-        this.apiKey,
-        this.model,
-        GENERATION_INSTRUCTION,
-        input,
-        'learning_record',
-        generationJsonSchema,
-        signal,
-      );
+    } catch (responsesError) {
+      try {
+        return await chatCompletionJson(
+          this.apiKey,
+          this.model,
+          GENERATION_INSTRUCTION,
+          input,
+          'learning_record',
+          generationJsonSchema,
+          signal,
+        );
+      } catch (chatError) {
+        const responsesCause = responsesError instanceof Error ? responsesError.message : String(responsesError);
+        const chatCause = chatError instanceof Error ? chatError.message : String(chatError);
+        throw new Error(`Structured output failed across both protocols. Responses: ${responsesCause}. Chat Completions: ${chatCause}`);
+      }
     }
   }
 }
