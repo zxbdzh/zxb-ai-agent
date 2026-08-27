@@ -72,6 +72,48 @@ test('tag generation strengthens retry prompts after provider parse failures', a
   assert.match(inputs[1]!, /does not contain a JSON object/);
 });
 
+test('tag generation retries trusted semantic validation failures without weakening guide boundaries', async () => {
+  const inputs: string[] = [];
+  let attempt = 0;
+  const invalidReplacement = '不得泄漏的非法正文\n\n## 同级章节';
+  const provider: GenerationProvider = {
+    async generate(input) {
+      inputs.push(input);
+      attempt += 1;
+      return attempt === 1
+        ? { ...output, guideUpdates: [{ target: 'running-the-application#main-application', replacementMarkdown: invalidReplacement }] }
+        : output;
+    },
+  };
+  const generated = await generateTagWithRepairs(
+    provider,
+    'original prompt',
+    (candidate) => validateTagGeneratedOutput(candidate, identity, corpus),
+  );
+  assert.deepEqual(generated, output);
+  assert.equal(inputs.length, 2);
+  assert.match(inputs[1]!, /failed trusted semantic validation/);
+  assert.match(inputs[1]!, /cannot create page metadata or peer sections/);
+  assert.doesNotMatch(inputs[1]!, /不得泄漏的非法正文/);
+});
+
+test('tag generation exhausts its finite repair budget on repeated semantic failures', async () => {
+  let attempts = 0;
+  const provider: GenerationProvider = {
+    async generate() {
+      attempts += 1;
+      return output;
+    },
+  };
+  await assert.rejects(
+    generateTagWithRepairs(provider, 'original prompt', () => {
+      throw new Error('semantic boundary failed');
+    }),
+    /semantic boundary failed/,
+  );
+  assert.equal(attempts, 3);
+});
+
 test('tag Evolution Record is deterministic and evidence-bound', () => {
   const evidence = createVerificationEvidence(targetSha, 'https://github.com/zxbdzh/zxb-ai-agent/actions/runs/123');
   assert.equal(tagEvolutionFilename(output), `2026-08-25-${targetSha.slice(0, 8)}-tag-release.md`);

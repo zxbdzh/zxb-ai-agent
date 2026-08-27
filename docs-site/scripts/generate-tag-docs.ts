@@ -90,7 +90,11 @@ if (!apiKey) throw new Error('OPENAI_API_KEY is required for trusted tag generat
 const model = process.env.OPENAI_MODEL?.trim() || 'gpt-5-mini';
 const identity: TagGenerationIdentity = { targetSha, baseSha, tag, previousTag, date };
 const prompt = tagGenerationPrompt({ identity, corpus, corpusText: serializeCorpus(corpus), diffText, guideImpacts });
-const generated = validateTagGeneratedOutput(await generateTagWithRepairs(new OpenAITagGenerationProvider(apiKey, model), prompt), identity, corpus, guideImpacts);
+const generated = await generateTagWithRepairs(
+  new OpenAITagGenerationProvider(apiKey, model),
+  prompt,
+  (output) => validateTagGeneratedOutput(output, identity, corpus, guideImpacts),
+);
 const evidence = await readVerificationEvidence(path.resolve(siteRoot, evidenceInput), targetSha);
 
 await mkdir(path.join(outputRoot, 'guide-updates'), { recursive: true });

@@ -23,7 +23,11 @@ export interface GuideImpact {
   changedEvidencePaths: readonly string[];
 }
 
-export async function generateTagWithRepairs(provider: GenerationProvider, input: string): Promise<TagGenerationOutput> {
+export async function generateTagWithRepairs(
+  provider: GenerationProvider,
+  input: string,
+  validate: (output: TagGenerationOutput) => TagGenerationOutput = (output) => output,
+): Promise<TagGenerationOutput> {
   if (Buffer.byteLength(input, 'utf8') > MAX_PROVIDER_INPUT) throw new Error('provider input exceeds bounded size');
   let currentInput = input;
   let lastError: Error | undefined;
@@ -32,7 +36,16 @@ export async function generateTagWithRepairs(provider: GenerationProvider, input
     const timer = setTimeout(() => controller.abort(new Error('provider timeout')), PROVIDER_TIMEOUT_MS);
     try {
       const parsed = tagGenerationOutputSchema.safeParse(await provider.generate(currentInput, controller.signal));
-      if (parsed.success) return parsed.data;
+      if (parsed.success) {
+        try {
+          return validate(parsed.data);
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+          currentInput = `${input}\n\nThe prior response failed trusted semantic validation: ${lastError.message.slice(0, 500).replace(/[\r\n]+/g, ' ')}. Return fresh JSON only that satisfies every original constraint.`;
+          if (attempt === MAX_REPAIRS) break;
+          continue;
+        }
+      }
       lastError = new Error(`strict tag output schema rejected response: ${parsed.error.issues.map((issue) => issue.path.join('.')).join(', ')}`);
       currentInput = `${input}\n\nThe prior response failed the strict schema. Return fresh JSON only. Invalid field paths: ${parsed.error.issues.map((issue) => issue.path.join('.')).join(', ')}`;
     } catch (error) {
