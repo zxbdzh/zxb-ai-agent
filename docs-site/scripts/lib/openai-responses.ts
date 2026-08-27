@@ -65,6 +65,7 @@ export class OpenAIResponsesGenerationProvider implements GenerationProvider {
   async generate(input: string, signal: AbortSignal): Promise<unknown> {
     const response = await responseJson(this.apiKey, {
       model: this.model,
+      reasoning: { effort: 'none' },
       input: [
         { role: 'developer', content: GENERATION_INSTRUCTION },
         { role: 'user', content: input },

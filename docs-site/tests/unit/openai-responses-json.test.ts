@@ -32,7 +32,22 @@ test('Responses function tools use the Responses API request shape', () => {
   });
 });
 
-test('Responses rejects missing structured output', () => {
-  assert.throws(() => responsesJsonValue({ output: [] }));
-  assert.throws(() => responsesJsonValue({ output_text: 'plain prose' }));
+test('Responses rejects missing structured output with bounded metadata only', () => {
+  assert.throws(
+    () => responsesJsonValue({ status: 'incomplete', incomplete_details: { reason: 'max_output_tokens' }, output: [] }),
+    /status=incomplete; incomplete_reason=max_output_tokens; output_types=none; function_calls=0; text_chars=0/,
+  );
+  assert.throws(
+    () => responsesJsonValue({
+      status: 'completed',
+      output_text: 'sensitive plain prose',
+      output: [{ type: 'message', content: [{ type: 'output_text', text: 'more sensitive prose' }] }],
+    }),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /output_types=message; function_calls=0; text_chars=41/);
+      assert.doesNotMatch(error.message, /sensitive plain prose|more sensitive prose/);
+      return true;
+    },
+  );
 });

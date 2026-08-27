@@ -3,25 +3,38 @@ import { extractJsonObject } from './openai-json.js';
 
 export function chatCompletionJsonValue(response: Record<string, unknown>): unknown {
   const choices = Array.isArray(response.choices) ? response.choices : [];
-  const first = choices[0];
-  if (!first || typeof first !== 'object') throw new Error('Chat Completions API returned no choices');
-  const message = (first as { message?: unknown }).message;
-  if (!message || typeof message !== 'object') throw new Error('Chat Completions API returned no message');
-  const toolCalls = Array.isArray((message as { tool_calls?: unknown }).tool_calls)
-    ? (message as { tool_calls: unknown[] }).tool_calls
-    : [];
-  const firstToolCall = toolCalls[0];
-  if (firstToolCall && typeof firstToolCall === 'object') {
-    const fn = (firstToolCall as { function?: unknown }).function;
-    if (fn && typeof fn === 'object' && typeof (fn as { arguments?: unknown }).arguments === 'string') {
-      return JSON.parse(extractJsonObject((fn as { arguments: string }).arguments));
+  try {
+    const first = choices[0];
+    if (!first || typeof first !== 'object') throw new Error('Chat Completions API returned no choices');
+    const message = (first as { message?: unknown }).message;
+    if (!message || typeof message !== 'object') throw new Error('Chat Completions API returned no message');
+    const toolCalls = Array.isArray((message as { tool_calls?: unknown }).tool_calls)
+      ? (message as { tool_calls: unknown[] }).tool_calls
+      : [];
+    const firstToolCall = toolCalls[0];
+    if (firstToolCall && typeof firstToolCall === 'object') {
+      const fn = (firstToolCall as { function?: unknown }).function;
+      if (fn && typeof fn === 'object' && typeof (fn as { arguments?: unknown }).arguments === 'string') {
+        return JSON.parse(extractJsonObject((fn as { arguments: string }).arguments));
+      }
     }
+    const content = (message as { content?: unknown }).content;
+    if (typeof content !== 'string' || content.trim().length === 0) {
+      throw new Error('Chat Completions API returned neither tool arguments nor text output');
+    }
+    return JSON.parse(extractJsonObject(content));
+  } catch (error) {
+    const first = choices[0];
+    const choice = first && typeof first === 'object' ? first as Record<string, unknown> : {};
+    const message = choice.message && typeof choice.message === 'object'
+      ? choice.message as Record<string, unknown>
+      : {};
+    const toolCalls = Array.isArray(message.tool_calls) ? message.tool_calls : [];
+    const contentChars = typeof message.content === 'string' ? message.content.length : 0;
+    const finishReason = typeof choice.finish_reason === 'string' ? choice.finish_reason : 'unknown';
+    const cause = error instanceof Error ? error.message : String(error);
+    throw new Error(`Chat Completions structured output invalid: choices=${choices.length}; finish_reason=${finishReason}; tool_calls=${toolCalls.length}; content_chars=${contentChars}; cause=${cause}`);
   }
-  const content = (message as { content?: unknown }).content;
-  if (typeof content !== 'string' || content.trim().length === 0) {
-    throw new Error('Chat Completions API returned neither tool arguments nor text output');
-  }
-  return JSON.parse(extractJsonObject(content));
 }
 
 export async function chatCompletionJson(

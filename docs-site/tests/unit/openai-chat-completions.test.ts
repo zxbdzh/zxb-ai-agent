@@ -36,8 +36,18 @@ test('Chat Completions disables reasoning when forcing tools for GPT-5.6 compati
   }
 });
 
-test('Chat Completions rejects missing or empty structured output', () => {
-  assert.throws(() => chatCompletionJsonValue({ choices: [] }));
-  assert.throws(() => chatCompletionJsonValue({ choices: [{}] }));
-  assert.throws(() => chatCompletionJsonValue({ choices: [{ message: { content: '   ' } }] }));
+test('Chat Completions rejects missing structured output with bounded metadata only', () => {
+  assert.throws(() => chatCompletionJsonValue({ choices: [] }), /choices=0; finish_reason=unknown; tool_calls=0; content_chars=0/);
+  assert.throws(() => chatCompletionJsonValue({ choices: [{}] }), /choices=1; finish_reason=unknown; tool_calls=0; content_chars=0/);
+  assert.throws(
+    () => chatCompletionJsonValue({
+      choices: [{ finish_reason: 'stop', message: { content: 'sensitive plain prose' } }],
+    }),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /choices=1; finish_reason=stop; tool_calls=0; content_chars=21/);
+      assert.doesNotMatch(error.message, /sensitive plain prose/);
+      return true;
+    },
+  );
 });

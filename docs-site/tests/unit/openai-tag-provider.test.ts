@@ -45,11 +45,13 @@ test('tag provider falls back from non-JSON Responses output to Chat Completions
     assert.deepEqual(urls, ['https://example.com/v1/responses', 'https://example.com/v1/chat/completions']);
     const responsesBody = requestBodies[0] as {
       max_output_tokens?: number;
+      reasoning?: { effort?: string };
       tools?: Array<{ name?: string; strict?: boolean; parameters?: unknown }>;
       tool_choice?: { type?: string; name?: string };
       parallel_tool_calls?: boolean;
     };
     assert.equal(responsesBody.max_output_tokens, 20_000);
+    assert.equal(responsesBody.reasoning?.effort, 'none');
     assert.equal(responsesBody.tools?.[0]?.name, 'tag_documentation');
     assert.equal(responsesBody.tools?.[0]?.strict, true);
     assert.equal(responsesBody.tool_choice?.type, 'function');
