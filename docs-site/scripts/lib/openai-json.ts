@@ -1,6 +1,7 @@
 export function extractJsonObject(text: string): string {
-  const fenced = /```(?:json)?\s*([\s\S]*?)\s*```/i.exec(text)?.[1];
-  const candidate = fenced?.trim() ?? text.trim();
+  const trimmed = text.trim();
+  const outerFence = /^```(?:json)?\s*\n?([\s\S]*?)\n?```$/i.exec(trimmed);
+  const candidate = outerFence?.[1]?.trim() ?? trimmed;
   try {
     const value = JSON.parse(candidate) as unknown;
     if (typeof value === 'string') {
