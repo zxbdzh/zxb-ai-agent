@@ -4,8 +4,8 @@ description: Conversation ID、20 条消息窗口和进程内存边界。
 docType: current-guide
 sidebar:
   order: 4
-verifiedAgainst: 4412509aa4c1f478c4e5920e65949f6aeb268181
-verifiedAt: 2026-08-23
+verifiedAgainst: 54985619feb72d76c18f9c92eff6f4fc51790401
+verifiedAt: 2026-08-28
 evidencePaths:
   - src/main/java/com/zxb/app/LoveApp.java
   - src/test/java/com/zxb/zxbaiagent/ConsoleChatApplication.java
@@ -15,12 +15,12 @@ verificationCommands:
 
 ## 对话记忆
 
-`LoveApp` 使用 `MessageWindowChatMemory`，明确设置 `maxMessages(20)`，并通过 `MessageChatMemoryAdvisor` 注入历史消息。这里的 20 是消息条数，不应描述成 20 轮。
+`LoveApp` 使用 `MessageWindowChatMemory`，并显式设置 `maxMessages(3)`。`MessageChatMemoryAdvisor` 被配置为默认 Advisor，用于在请求中使用记忆。
 
-每次 `doChat(message, chatId)` 都把 `chatId` 作为 `ChatMemory.CONVERSATION_ID` 传入。相同会话 ID 共享对应历史；不同 ID 隔离会话。调用方必须稳定、明确地提供该 ID。
+每次 `doChat(message, chatId)` 调用都会将 `chatId` 作为 `ChatMemory.CONVERSATION_ID` 参数传入。相同 ID 对应同一会话记忆，不同 ID 用于区分会话。
 
 ## 生命周期
 
-当前没有 JDBC、Redis 或其他持久化记忆仓库配置。记忆保存在应用上下文内；进程或上下文重启后，不应假定旧历史仍存在。
+当前 `LoveApp` 在创建时构建 `MessageWindowChatMemory`，未配置 JDBC、Redis 或其他持久化记忆仓库。因此，记忆仅存在于该应用上下文中，重启进程或上下文后不应假定历史仍可用。
 
-命令行入口每次启动只生成一个随机 UUID，所以单次运行内可形成多轮上下文，重新启动后得到新会话。AI 回复还会以 INFO 日志记录，生产使用前应评估日志中的敏感内容。
+命令行入口每次启动生成新的随机 UUID。`LoveApp` 会以 INFO 级别记录模型回复；运行环境应考虑日志中可能出现的对话内容。
