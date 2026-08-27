@@ -4,8 +4,8 @@ description: 当前 OpenAI 兼容模型的实际配置键和值。
 docType: current-guide
 sidebar:
   order: 2
-verifiedAgainst: 4412509aa4c1f478c4e5920e65949f6aeb268181
-verifiedAt: 2026-08-23
+verifiedAgainst: 54985619feb72d76c18f9c92eff6f4fc51790401
+verifiedAt: 2026-08-28
 evidencePaths:
   - src/main/resources/application.yaml
   - build.gradle
@@ -15,18 +15,16 @@ verificationCommands:
 
 ## 当前配置
 
-应用启用 Spring AI OpenAI starter，并从 `application.yaml` 读取：
+应用启用 Spring AI 的 OpenAI 模型 starter，并从 `application.yaml` 读取以下配置：
 
 | 项目 | 当前值 |
 |---|---|
-| 必需 API 密钥变量 | `OPENAI_APIKEY` |
+| API 密钥变量 | `OPENAI_APIKEY` |
 | 可选服务地址变量 | `OPENAI_BASEURL` |
 | 默认服务地址 | `https://api.openai.com` |
 | 模型 | `gpt-5.6-terra` |
 | temperature | `0.7` |
 | max-tokens | `1000` |
-
-变量名没有 `KEY` 或 `URL` 前的下划线。`OPENAI_API_KEY` 和 `OPENAI_BASE_URL` 不会满足当前 YAML 占位符。
 
 ```powershell
 $env:OPENAI_APIKEY = "<由密钥管理器提供>"
@@ -36,4 +34,6 @@ $env:OPENAI_BASEURL = "https://兼容服务地址"
 
 ## 模型选择
 
-`LoveApp` 接收活动的通用 `ChatModel` Bean。构造参数名虽然是 `ollamaChatModel`，但当前 Gradle 启用的是 OpenAI starter，Ollama 依赖处于注释状态。兼容服务必须实际提供 `gpt-5.6-terra`，否则需要在 `application.yaml` 中改成服务支持的模型并重新验证本页。
+`LoveApp` 构造函数接收通用的 `ChatModel` Bean。当前 Gradle 声明了 OpenAI 模型 starter；Ollama starter 依赖在构建文件中被注释。
+
+使用兼容服务时，该服务需要支持 `application.yaml` 中的 `gpt-5.6-terra`；否则应将配置改为服务支持的模型标识。
