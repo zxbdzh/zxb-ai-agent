@@ -61,17 +61,21 @@ test.describe('章节标识', () => {
 });
 
 test.describe('动效等级', () => {
-  test('默认 L1：标题描边动画启用，Canvas 不挂载', async ({ page }) => {
+  test('默认 L1：标题描边动画启用、氛围光漂移、Canvas 不挂载', async ({ page }) => {
     await page.goto('./evolution/', { waitUntil: 'networkidle' });
     await expect(page.locator('html')).toHaveAttribute('data-motion', '1');
     await expect(page.locator('#chapter-canvas')).toHaveCount(0);
     const underline = await page.evaluate(() =>
       getComputedStyle(document.querySelector('h1#_top')!, '::after').animationName,
     );
-    expect(underline).toBe('chapter-underline');
+    expect(underline).toContain('chapter-underline');
+    const ambient = await page.evaluate(() =>
+      getComputedStyle(document.body, '::before').animationName,
+    );
+    expect(ambient).toBe('ambient-drift');
   });
 
-  test('L0 经典模式：无动画、无 View Transition、无 Canvas', async ({ page }) => {
+  test('L0 经典模式：无动画、无氛围光、无 View Transition、无 Canvas', async ({ page }) => {
     await setMotionLevel(page, '0');
     await page.goto('./evolution/', { waitUntil: 'networkidle' });
     await expect(page.locator('html')).toHaveAttribute('data-motion', '0');
@@ -80,6 +84,10 @@ test.describe('动效等级', () => {
       getComputedStyle(document.querySelector('h1#_top')!, '::after').animationName,
     );
     expect(underline).toBe('none');
+    const ambient = await page.evaluate(
+      () => getComputedStyle(document.body, '::before').content,
+    );
+    expect(ambient).toBe('none');
   });
 
   test('页头切换动效等级并持久化', async ({ page }, testInfo) => {

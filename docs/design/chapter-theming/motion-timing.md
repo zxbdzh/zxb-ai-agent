@@ -71,11 +71,15 @@ stateDiagram-v2
 | 动效 | 属性 | 时长 | 缓动 | 触发 | 等级 |
 |---|---|---|---|---|---|
 | 章节色彩插值 | --chapter-hue / 亮色主色 | 0.5s | cubic-bezier(0.2, 0, 0.2, 1) | 跨章节导航 | L1 |
-| 标题渐变描边 | scaleX | 0.9s + 0.2s delay | cubic-bezier(0.22, 1, 0.36, 1) | 加载 | L1 |
-| 侧边栏指示灯 | scale+opacity | 2.6s 循环 | ease-in-out | 加载 | L1 |
-| 阅读进度条 | scaleX | scroll(root) | linear | 滚动 | L1 |
+| 全站氛围光漂移 | transform(合成器) | 34s(L3: 26s) 循环 | ease-in-out alternate | 加载 | L1-L3 |
+| 标题渐变描边+流光 | scaleX + background-position | 0.9s 描边 + 5s 流光循环 | cubic-bezier(0.22,1,0.36,1) / linear | 加载 | L1 |
+| 侧边栏活跃辉光 | box-shadow(静态) + 指示灯脉冲 | 2.6s 循环 | ease-in-out | 加载 | L1 |
+| 导航发丝线 | 章节渐变 1px（静态） | — | — | 常驻 | 非动效 |
+| 阅读进度条 | scaleX + 辉光 | scroll(root) | linear | 滚动 | L1 |
 | 卡片悬停浮起 | translateY+shadow | 0.22s | cubic-bezier(0, 0, 0.2, 1) | 悬停 | L2 |
+| 表格行悬停染色 | background-color | 0.2s | ease | 悬停 | L2 |
 | 引用块发光 | box-shadow | 0.22s | ease | 悬停 | L2 |
 | Callout 入场 | opacity+translateY | 0.4s | cubic-bezier(0, 0, 0.2, 1) | 加载 | L2 |
 | 警示图标脉冲 | scale+opacity | 2.2s 循环 | ease-in-out | 加载 | L2 |
-| 首页氛围光 | translate3d+scale | 38s/52s 交替 | ease-in-out | 加载 | L3 |
+| 首页流光标题 | background-position(clip:text) | 6s 循环 | ease-in-out | 加载 | L3 |
+| 首页氛围光晕 | translate3d+scale | 38s/52s 交替 | ease-in-out | 加载 | L3 |

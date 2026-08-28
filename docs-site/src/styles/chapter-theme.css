@@ -97,6 +97,7 @@ html[data-chapter='automation'] {
 	--chapter-grad-a: hsl(var(--chapter-hue) calc(var(--chapter-sat) * 1%) 62%);
 	--chapter-grad-b: hsl(calc(var(--chapter-hue) + 40) calc(var(--chapter-sat) * 0.9%) 55%);
 	--chapter-glow: hsl(var(--chapter-hue) calc(var(--chapter-sat) * 1%) 60% / 0.18);
+	--chapter-glow-b: hsl(calc(var(--chapter-hue) + 55) calc(var(--chapter-sat) * 0.9%) 62% / 0.12);
 	--chapter-line: hsl(var(--chapter-hue) calc(var(--chapter-sat) * 0.7%) 55% / 0.4);
 	--chapter-code-tint: hsl(var(--chapter-hue) 35% 12%);
 	--chapter-code-brd: hsl(var(--chapter-hue) calc(var(--chapter-sat) * 0.45%) 30% / 0.6);
@@ -110,6 +111,7 @@ html[data-chapter='automation'] {
 	--chapter-grad-a: var(--chapter-light-accent);
 	--chapter-grad-b: hsl(from var(--chapter-light-accent) calc(h + 40deg) s l);
 	--chapter-glow: hsl(from var(--chapter-light-accent) h s l / 0.16);
+	--chapter-glow-b: hsl(from var(--chapter-light-accent) calc(h + 55deg) s l / 0.1);
 	--chapter-line: hsl(from var(--chapter-light-accent) h s l / 0.35);
 	--chapter-code-tint: hsl(from var(--chapter-light-accent) h 45% 96%);
 	--chapter-code-brd: hsl(from var(--chapter-light-accent) h 40% 78% / 0.7);
@@ -133,6 +135,57 @@ main {
 	position: relative;
 }
 
+/* 氛围层需垫在 body 背景之上、内容之下：让 body 成为独立堆叠上下文 */
+body {
+	isolation: isolate;
+}
+
+/* ------------------------------------------------------------------
+   3.5 全站章节氛围光（Linear 式）
+   两团章节色光晕随 transform 缓慢漂移（合成器动画，不重绘渐变），
+   颜色取自章节 token——导航换章时随插值一起换色。
+   强度随动效分级递进：L1 轻柔 / L2 饱满 / L3 最强（与 Canvas 叠加）。
+   ------------------------------------------------------------------ */
+html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) body::before {
+	content: '';
+	position: fixed;
+	inset: -30%;
+	z-index: -1;
+	pointer-events: none;
+	background:
+		radial-gradient(42rem 30rem at 24% 6%, var(--chapter-glow), transparent 65%),
+		radial-gradient(48rem 34rem at 76% 94%, var(--chapter-glow-b), transparent 65%);
+	opacity: var(--ambient-alpha, 0.55);
+	animation: ambient-drift 34s ease-in-out infinite alternate;
+	will-change: transform;
+}
+
+html[data-motion='2'] body::before {
+	--ambient-alpha: 0.75;
+}
+
+html[data-motion='3'] body::before {
+	--ambient-alpha: 0.95;
+	animation-duration: 26s;
+}
+
+@keyframes ambient-drift {
+	0% {
+		transform: translate3d(-2.5%, -1.5%, 0) rotate(-1.6deg) scale(1);
+	}
+	50% {
+		transform: translate3d(2%, 1.2%, 0) rotate(1.2deg) scale(1.05);
+	}
+	100% {
+		transform: translate3d(2.5%, -1.2%, 0) rotate(-0.8deg) scale(1.02);
+	}
+}
+
+/* 亮色模式整体压淡，避免洗白正文背景 */
+html[data-theme='light']:is([data-motion='1'], [data-motion='2'], [data-motion='3']) body::before {
+	opacity: calc(var(--ambient-alpha, 0.55) * 0.55);
+}
+
 /* ------------------------------------------------------------------
    4. 动效等级门控
    L1 标准：标题下划线描边 + 侧边栏活跃指示 + 进度条
@@ -148,10 +201,19 @@ html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) .hero h1::after
 	inline-size: 100%;
 	block-size: 3px;
 	border-radius: 2px;
-	background: linear-gradient(90deg, var(--chapter-grad-a), var(--chapter-grad-b));
+	background: linear-gradient(
+		90deg,
+		var(--chapter-grad-a),
+		var(--chapter-grad-b),
+		var(--chapter-grad-a)
+	);
+	background-size: 250% 100%;
+	box-shadow: 0 0 10px var(--chapter-glow);
 	transform: scaleX(0);
 	transform-origin: 0 50%;
-	animation: chapter-underline 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+	animation:
+		chapter-underline 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards,
+		chapter-flow 5s linear 1.3s infinite;
 }
 
 html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) h1#_top,
@@ -170,9 +232,30 @@ html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) .hero h1 {
 	}
 }
 
-/* 侧边栏活跃项：章节色指示灯（自动化章节气质：状态灯脉冲） */
-html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) .sidebar-content a[aria-current='page'] {
+/* 描边上的流光：渐变沿 3px 细线持续流动 */
+@keyframes chapter-flow {
+	from {
+		background-position: 0% 0;
+	}
+	to {
+		background-position: -200% 0;
+	}
+}
+
+/* 导航栏底缘章节渐变发丝线 */
+.page > .header {
+	background-image: linear-gradient(90deg, transparent, var(--chapter-line), transparent);
+	background-repeat: no-repeat;
+	background-size: 100% 1px;
+	background-position: 0 100%;
+}
+
+/* 侧边栏活跃项：章节色指示灯 + 辉光（自动化章节气质：状态灯脉冲） */
+html:is([data-motion='1'], [data-motion='2'], [data-motion='3'])
+	.sidebar-content
+	a[aria-current='page'] {
 	position: relative;
+	box-shadow: 0 0 14px var(--chapter-glow);
 }
 
 html:is([data-motion='1'], [data-motion='2'], [data-motion='3'])
@@ -213,6 +296,7 @@ html:is([data-motion='1'], [data-motion='2'], [data-motion='3'])
 		block-size: 2px;
 		z-index: calc(var(--sl-z-index-navbar) + 1);
 		background: linear-gradient(90deg, var(--chapter-grad-a), var(--chapter-grad-b));
+		box-shadow: 0 0 8px var(--chapter-glow), 0 0 2px var(--chapter-grad-a);
 		transform-origin: 0 50%;
 		transform: scaleX(0);
 		animation: chapter-progress linear both;
@@ -238,6 +322,15 @@ html:is([data-motion='2'], [data-motion='3']) .card:hover {
 	transform: translateY(-3px);
 	border-color: var(--chapter-line);
 	box-shadow: 0 8px 24px var(--chapter-glow);
+}
+
+/* L2 丰富：表格行悬停染色 */
+html:is([data-motion='2'], [data-motion='3']) .sl-markdown-content tbody tr {
+	transition: background-color 0.2s ease;
+}
+
+html:is([data-motion='2'], [data-motion='3']) .sl-markdown-content tbody tr:hover {
+	background-color: var(--chapter-glow);
 }
 
 /* L2 丰富：引用块章节渐变左缘 + 悬停发光 */
@@ -337,6 +430,33 @@ html[data-chapter='home'][data-motion='3'] .hero::after {
 @keyframes ambient-b {
 	to {
 		transform: translate3d(-12vw, -8vh, 0) scale(1.2);
+	}
+}
+
+/* L3 沉浸：首页标题渐变流光文字（Stripe 式签名效果） */
+html[data-chapter='home'][data-motion='3'] .hero h1 {
+	background: linear-gradient(
+		100deg,
+		var(--sl-color-white) 28%,
+		var(--chapter-grad-a) 46%,
+		var(--chapter-grad-b) 54%,
+		var(--sl-color-white) 72%
+	);
+	background-size: 260% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	-webkit-text-fill-color: transparent;
+	animation: hero-shimmer 6s ease-in-out infinite;
+}
+
+@keyframes hero-shimmer {
+	0%,
+	100% {
+		background-position: 100% 0;
+	}
+	50% {
+		background-position: 0% 0;
 	}
 }
 

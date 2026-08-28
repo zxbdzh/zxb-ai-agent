@@ -10,6 +10,8 @@
 | 跨文档 View Transitions 不可用/不触发 | 无影响——色彩插值为主路径（实测部分 Chromium 构建 `pagereveal` 不携带 viewTransition，VT 仅作渐进增强保留） | 设计使然 |
 | 不支持 scroll-driven animations | 阅读进度条整体不渲染（@supports 门控，无布局占位） | CSS |
 | 不支持 @property（<Chrome 85 / <Safari 16.4 / <Firefox 128） | 章节色瞬时落位（无插值），其余功能完整 | CSS 渐进增强 |
+| 氛围光层 | body 隔离为独立堆叠上下文（`isolation: isolate`），伪元素 z-index -1 垫底；仅 transform/opacity 动画（合成器层，不重绘渐变）；RM 下动画熄灭但保留静态色晕（色彩非动效） | CSS |
+| 章节色滚动条 | `scrollbar-color`（Firefox/Chromium 121+），旧浏览器回退系统默认滚动条 | CSS 渐进增强 |
 | 不支持相对色语法（<Chrome 119） | 亮色渐变副色/辉光回退为继承值，主色系仍正常 | CSS 渐进增强 |
 | JS 禁用 | `data-motion` 永远不设置 → 所有动效门控不命中；页面为纯静态可读文档（章节色 via CSS 选择器仍生效） | 设计使然 |
 | Canvas 运行时异常 | try/catch 静默退出并移除画布，文档不受影响 | engine/effects |
