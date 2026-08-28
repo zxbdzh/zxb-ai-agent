@@ -1,0 +1,122 @@
+---
+import DefaultHead from '@astrojs/starlight/components/Head.astro';
+---
+
+<DefaultHead />
+
+{/* 首帧前注入章节标识与动效等级，避免主题闪烁（FOUC）。章节按路径段识别，
+	与站点 base 路径解耦；等级读取失败时回退到 L1 标准。
+	跨章节导航时：首帧先按“上一章节”着色，双 rAF 后切到当前章节——
+	已注册（@property）的章节变量随之做 transition 插值，实现 HSL 平滑渐变。 */}
+<script is:inline>
+	(function () {
+		var root = document.documentElement;
+		var known = ['current', 'evolution', 'reference', 'automation'];
+		var segs = location.pathname.split('/').filter(Boolean);
+		var chapter = 'home';
+		for (var i = 0; i < segs.length; i++) {
+			if (known.indexOf(segs[i]) !== -1) {
+				chapter = segs[i];
+				break;
+			}
+		}
+		var level = null;
+		try {
+			level = localStorage.getItem('docs-motion-level');
+		} catch (e) {
+			/* 隐私模式：保持默认 L1 */
+		}
+		if (level !== '0' && level !== '1' && level !== '2' && level !== '3') level = '1';
+		root.dataset.motion = level;
+
+		var reduced = false;
+		try {
+			reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+		} catch (e) {
+			/* 旧浏览器：按未开启处理 */
+		}
+		var prev = null;
+		try {
+			prev = localStorage.getItem('docs-chapter-prev');
+		} catch (e) {
+			/* 同上 */
+		}
+		var recolor =
+			level !== '0' && !reduced && Boolean(prev) && prev !== chapter &&
+			known.concat('home').indexOf(prev) !== -1;
+		if (recolor) {
+			// 首帧按上一章节配色，提交一帧后切到当前章节触发插值
+			root.dataset.chapter = prev;
+			root.dataset.recolor = '';
+			requestAnimationFrame(function () {
+				requestAnimationFrame(function () {
+					root.dataset.chapter = chapter;
+					root.removeAttribute('data-recolor');
+				});
+			});
+		} else {
+			root.dataset.chapter = chapter;
+		}
+		try {
+			localStorage.setItem('docs-chapter-prev', chapter);
+		} catch (e) {
+			/* 隐私模式：跳过记忆 */
+		}
+
+		if (level === '0') {
+			try {
+				root.style.setProperty('view-transition-name', 'none');
+			} catch (e) {
+				/* 旧浏览器不支持该属性，View Transitions 仍按媒体查询降级 */
+			}
+		}
+		try {
+			if ('ViewTransition' in window) root.dataset.fx = 'vt';
+		} catch (e) {
+			/* 不支持 View Transitions：CSS 入场动画兜底 */
+		}
+	})();
+</script>
+
+{/* 章节氛围 Canvas 协调器：仅在 L3 + 配备效果的章节 + 未开启减弱动态时按需加载。
+	动态 import 由 Vite 分包，L0-L2 用户不产生任何效果代码的网络请求。 */}
+<script>
+	type Disposer = () => void;
+
+	const EFFECTS: Record<string, () => Promise<{ mount: () => Disposer }>> = {
+		evolution: () => import('../scripts/effects/evolution-particles'),
+		reference: () => import('../scripts/effects/reference-stream'),
+	};
+
+	const level = (): number => Number(document.documentElement.dataset.motion ?? '1');
+	const reduced = (): boolean => matchMedia('(prefers-reduced-motion: reduce)').matches;
+	// 从路径独立解析章节：首帧可能短暂带着上一章节的 data-chapter（色彩插值起跳态）
+	const chapterOf = (): 'home' | 'current' | 'evolution' | 'reference' | 'automation' => {
+		const known = ['current', 'evolution', 'reference', 'automation'] as const;
+		const seg = location.pathname.split('/').filter(Boolean).find((s) => known.includes(s as (typeof known)[number]));
+		return (seg ?? 'home') as 'home';
+	};
+	const canvasAllowed = (): boolean =>
+		level() >= 3 && !reduced() && Boolean(EFFECTS[chapterOf()]);
+
+	let active: Disposer | null = null;
+	let seq = 0;
+
+	async function sync(): Promise<void> {
+		const token = ++seq;
+		if (active) {
+			active();
+			active = null;
+		}
+		const load = EFFECTS[chapterOf()];
+		if (!canvasAllowed() || !load) return;
+		const { mount } = await load();
+		// 等待期间等级或页面状态已变化：放弃本次挂载
+		if (token !== seq || !canvasAllowed()) return;
+		active = mount();
+	}
+
+	document.addEventListener('docs:motion-level', () => void sync());
+	window.addEventListener('pageshow', () => void sync());
+	void sync();
+</script>

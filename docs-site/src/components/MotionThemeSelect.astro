@@ -1,0 +1,69 @@
+---
+import DefaultThemeSelect from '@astrojs/starlight/components/ThemeSelect.astro';
+import Select from '@astrojs/starlight/components/Select.astro';
+---
+
+<div class="motion-selects">
+	<DefaultThemeSelect />
+	<starlight-motion-select>
+		<Select
+			icon="rocket"
+			label="动效等级"
+			width="6.5em"
+			options={[
+				{ label: 'L0 经典', value: '0', selected: false },
+				{ label: 'L1 标准', value: '1', selected: false },
+				{ label: 'L2 丰富', value: '2', selected: false },
+				{ label: 'L3 沉浸', value: '3', selected: false },
+			]}
+		/>
+	</starlight-motion-select>
+</div>
+
+<style>
+	.motion-selects {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+</style>
+
+<script>
+	const STORAGE_KEY = 'docs-motion-level';
+	const LEVELS = ['0', '1', '2', '3'];
+
+	function applyLevel(value: string): void {
+		const level = LEVELS.includes(value) ? value : '1';
+		document.documentElement.dataset.motion = level;
+		if (level === '0') {
+			// 经典模式：移除根节点命名，尽力跳过跨文档 View Transition
+			document.documentElement.style.setProperty('view-transition-name', 'none');
+		} else {
+			document.documentElement.style.removeProperty('view-transition-name');
+		}
+		try {
+			localStorage.setItem(STORAGE_KEY, level);
+		} catch {
+			/* 隐私模式等场景静默失败 */
+		}
+		document.dispatchEvent(new CustomEvent('docs:motion-level', { detail: level }));
+	}
+
+	class StarlightMotionSelect extends HTMLElement {
+		constructor() {
+			super();
+			const select = this.querySelector('select');
+			if (!select) return;
+			select.value = document.documentElement.dataset.motion ?? '1';
+			select.addEventListener('change', (event) => {
+				if (event.currentTarget instanceof HTMLSelectElement) {
+					applyLevel(event.currentTarget.value);
+				}
+			});
+		}
+	}
+
+	if (!customElements.get('starlight-motion-select')) {
+		customElements.define('starlight-motion-select', StarlightMotionSelect);
+	}
+</script>

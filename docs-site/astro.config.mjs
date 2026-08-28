@@ -16,6 +16,12 @@ export default defineConfig({
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/zxbdzh/zxb-ai-agent' },
       ],
+      // 章节感知型主题：设计规范见 docs/design/chapter-theming/
+      customCss: ['./src/styles/chapter-theme.css'],
+      components: {
+        Head: './src/components/ChapterHead.astro',
+        ThemeSelect: './src/components/MotionThemeSelect.astro',
+      },
       defaultLocale: 'root',
       locales: {
         root: { label: '简体中文', lang: 'zh-CN' },

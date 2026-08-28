@@ -1,0 +1,73 @@
+{
+  "$comment": "章节感知型主题的机器可读配置。新增章节：在此填表 + 复制 chapter-theme.css 第 1 节的章节块 + 在 ChapterHead.astro 的 known 数组登记。详见 docs/design/chapter-theming/README.md",
+  "version": 1,
+  "motionLevels": {
+    "0": "经典（无动效）",
+    "1": "标准（默认：标题描边/指示灯/进度条）",
+    "2": "丰富（+ 悬停与入场响应）",
+    "3": "沉浸（+ 首页氛围光/章节首页 Canvas）"
+  },
+  "storageKey": "docs-motion-level",
+  "chapters": [
+    {
+      "id": "home",
+      "path": "/",
+      "label": "首页",
+      "hue": 224,
+      "saturationDark": 100,
+      "lightAccent": "hsl(224 90% 55%)",
+      "mood": ["品牌锚点", "可信", "启动"],
+      "signatureMotion": "hero-underline-glow",
+      "canvasEffect": null,
+      "enterDirection": "center"
+    },
+    {
+      "id": "current",
+      "path": "/current/",
+      "label": "当前指南",
+      "hue": 160,
+      "saturationDark": 84,
+      "lightAccent": "hsl(160 92% 26%)",
+      "mood": ["轻盈", "向上", "启动感"],
+      "signatureMotion": "underline + card-hover-lift",
+      "canvasEffect": null,
+      "enterDirection": "up"
+    },
+    {
+      "id": "evolution",
+      "path": "/evolution/",
+      "label": "演进记录",
+      "hue": 265,
+      "saturationDark": 82,
+      "lightAccent": "hsl(265 78% 52%)",
+      "mood": ["深度", "沉淀", "编年史"],
+      "signatureMotion": "underline + status-pulse",
+      "canvasEffect": "evolution-particles",
+      "enterDirection": "left"
+    },
+    {
+      "id": "reference",
+      "path": "/reference/",
+      "label": "参考资料",
+      "hue": 215,
+      "saturationDark": 64,
+      "lightAccent": "hsl(215 72% 40%)",
+      "mood": ["精确", "克制", "机械感"],
+      "signatureMotion": "underline + grid-hover",
+      "canvasEffect": "reference-stream",
+      "enterDirection": "right"
+    },
+    {
+      "id": "automation",
+      "path": "/automation/",
+      "label": "自动化维护",
+      "hue": 35,
+      "saturationDark": 92,
+      "lightAccent": "hsl(35 92% 32%)",
+      "mood": ["关注", "警示", "工程感"],
+      "signatureMotion": "underline + warning-pulse",
+      "canvasEffect": null,
+      "enterDirection": "down"
+    }
+  ]
+}

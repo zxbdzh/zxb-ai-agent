@@ -1,0 +1,509 @@
+/* =====================================================================
+   章节感知型主题系统（Chapter-Aware Theme System）
+   ---------------------------------------------------------------------
+   驱动方式（由 src/components/ChapterHead.astro 在首帧前注入）：
+   - html[data-chapter]  当前章节：home | current | evolution | reference | automation
+   - html[data-motion]   动效等级：0 经典 | 1 标准（默认）| 2 丰富 | 3 沉浸
+   - html[data-fx]       'vt' 表示浏览器支持跨文档 View Transitions
+
+   设计规范与新增章节流程见仓库 docs/design/chapter-theming/。
+   本文件无第三方依赖；动效仅使用 transform/opacity（GPU 合成属性）。
+   ===================================================================== */
+
+/* ------------------------------------------------------------------
+   1.0 可动画化的章节变量 —— 注册为确定类型后即可参与 transition，
+   章节切换时色相与亮色主色按曲线插值（spec："HSL 插值平滑渐变，禁止硬切"）
+   ------------------------------------------------------------------ */
+@property --chapter-hue {
+	syntax: '<number>';
+	inherits: true;
+	initial-value: 224;
+}
+
+@property --chapter-light-accent {
+	syntax: '<color>';
+	inherits: true;
+	initial-value: hsl(224 90% 55%);
+}
+
+@property --chapter-light-accent-high {
+	syntax: '<color>';
+	inherits: true;
+	initial-value: hsl(224 90% 38%);
+}
+
+@property --chapter-light-accent-low {
+	syntax: '<color>';
+	inherits: true;
+	initial-value: hsl(224 90% 90%);
+}
+
+/* ------------------------------------------------------------------
+   1. 章节色彩 Token —— 每个章节一个块，新增章节只需复制并修改
+   --chapter-hue / --chapter-sat 用于暗色模式公式推导；
+   --chapter-light-* 为亮色模式手工校准值（正文对比度 ≥ 4.5:1）。
+   ------------------------------------------------------------------ */
+:root,
+html[data-chapter='home'] {
+	--chapter-hue: 224; /* 品牌蓝：可信锚点 */
+	--chapter-sat: 100;
+	--chapter-light-accent: hsl(224 90% 55%);
+	--chapter-light-accent-high: hsl(224 90% 38%);
+	--chapter-light-accent-low: hsl(224 90% 90%);
+}
+
+html[data-chapter='current'] {
+	--chapter-hue: 160; /* 活力青绿：启动感 */
+	--chapter-sat: 84;
+	--chapter-light-accent: hsl(160 92% 26%);
+	--chapter-light-accent-high: hsl(160 92% 19%);
+	--chapter-light-accent-low: hsl(160 70% 88%);
+}
+
+html[data-chapter='evolution'] {
+	--chapter-hue: 265; /* 深邃蓝紫：编年深度 */
+	--chapter-sat: 82;
+	--chapter-light-accent: hsl(265 78% 52%);
+	--chapter-light-accent-high: hsl(265 78% 38%);
+	--chapter-light-accent-low: hsl(265 75% 90%);
+}
+
+html[data-chapter='reference'] {
+	--chapter-hue: 215; /* 冷靛银：精确机械 */
+	--chapter-sat: 64;
+	--chapter-light-accent: hsl(215 72% 40%);
+	--chapter-light-accent-high: hsl(215 72% 30%);
+	--chapter-light-accent-low: hsl(215 65% 90%);
+}
+
+html[data-chapter='automation'] {
+	--chapter-hue: 35; /* 琥珀橙：工程警示 */
+	--chapter-sat: 92;
+	--chapter-light-accent: hsl(35 92% 32%);
+	--chapter-light-accent-high: hsl(35 92% 24%);
+	--chapter-light-accent-low: hsl(35 90% 88%);
+}
+
+/* ------------------------------------------------------------------
+   2. 派生公式 —— 把章节色相映射进 Starlight 的 accent 体系，
+   侧边栏/链接/选中文本等所有 --sl-color-accent* 消费点自动跟随章节。
+   ------------------------------------------------------------------ */
+:root {
+	--sl-color-accent-low: hsl(var(--chapter-hue) calc(var(--chapter-sat) * 0.54%) 20%);
+	--sl-color-accent: hsl(var(--chapter-hue) calc(var(--chapter-sat) * 1%) 60%);
+	--sl-color-accent-high: hsl(var(--chapter-hue) calc(var(--chapter-sat) * 1%) 85%);
+
+	/* 章节装饰色 */
+	--chapter-grad-a: hsl(var(--chapter-hue) calc(var(--chapter-sat) * 1%) 62%);
+	--chapter-grad-b: hsl(calc(var(--chapter-hue) + 40) calc(var(--chapter-sat) * 0.9%) 55%);
+	--chapter-glow: hsl(var(--chapter-hue) calc(var(--chapter-sat) * 1%) 60% / 0.18);
+	--chapter-line: hsl(var(--chapter-hue) calc(var(--chapter-sat) * 0.7%) 55% / 0.4);
+	--chapter-code-tint: hsl(var(--chapter-hue) 35% 12%);
+	--chapter-code-brd: hsl(var(--chapter-hue) calc(var(--chapter-sat) * 0.45%) 30% / 0.6);
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: var(--chapter-light-accent-low);
+	--sl-color-accent: var(--chapter-light-accent);
+	--sl-color-accent-high: var(--chapter-light-accent-high);
+
+	--chapter-grad-a: var(--chapter-light-accent);
+	--chapter-grad-b: hsl(from var(--chapter-light-accent) calc(h + 40deg) s l);
+	--chapter-glow: hsl(from var(--chapter-light-accent) h s l / 0.16);
+	--chapter-line: hsl(from var(--chapter-light-accent) h s l / 0.35);
+	--chapter-code-tint: hsl(from var(--chapter-light-accent) h 45% 96%);
+	--chapter-code-brd: hsl(from var(--chapter-light-accent) h 40% 78% / 0.7);
+}
+
+/* ------------------------------------------------------------------
+   3. 章节染色（非动效，任何等级都生效）
+   ------------------------------------------------------------------ */
+::selection {
+	background: var(--chapter-glow);
+}
+
+/* 代码块帧随章节染色（保留 Expressive Code 语法高亮不动） */
+.expressive-code pre {
+	border-color: var(--chapter-code-brd);
+	background-color: color-mix(in srgb, var(--chapter-code-tint) 18%, var(--ec-codeBg));
+}
+
+/* Canvas 宿主的定位锚点 */
+main {
+	position: relative;
+}
+
+/* ------------------------------------------------------------------
+   4. 动效等级门控
+   L1 标准：标题下划线描边 + 侧边栏活跃指示 + 进度条
+   L2 丰富：卡片/引用/Callout 悬停与入场
+   L3 沉浸：首页氛围光 + 章节首页 Canvas（由 JS 引擎挂载）
+   ------------------------------------------------------------------ */
+html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) h1#_top::after,
+html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) .hero h1::after {
+	content: '';
+	position: absolute;
+	inset-inline-start: 0;
+	inset-block-end: -0.4em;
+	inline-size: 100%;
+	block-size: 3px;
+	border-radius: 2px;
+	background: linear-gradient(90deg, var(--chapter-grad-a), var(--chapter-grad-b));
+	transform: scaleX(0);
+	transform-origin: 0 50%;
+	animation: chapter-underline 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+}
+
+html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) h1#_top,
+html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) .hero h1 {
+	position: relative;
+}
+
+/* Hero 标题下划线落在自有空间内，避免贴住副标题 */
+html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) .hero h1 {
+	margin-block-end: 1.4rem;
+}
+
+@keyframes chapter-underline {
+	to {
+		transform: scaleX(1);
+	}
+}
+
+/* 侧边栏活跃项：章节色指示灯（自动化章节气质：状态灯脉冲） */
+html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) .sidebar-content a[aria-current='page'] {
+	position: relative;
+}
+
+html:is([data-motion='1'], [data-motion='2'], [data-motion='3'])
+	.sidebar-content
+	a[aria-current='page']::before {
+	content: '';
+	position: absolute;
+	inset-inline-start: -0.9rem;
+	inset-block-start: 50%;
+	translate: 0 -50%;
+	inline-size: 5px;
+	block-size: 5px;
+	border-radius: 50%;
+	background: var(--chapter-grad-a);
+	box-shadow: 0 0 6px var(--chapter-glow);
+	animation: chapter-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes chapter-pulse {
+	0%,
+	100% {
+		transform: scale(1);
+		opacity: 0.85;
+	}
+	50% {
+		transform: scale(1.35);
+		opacity: 1;
+	}
+}
+
+/* 顶部阅读进度条：scroll-driven animation，颜色跟随章节 */
+@supports (animation-timeline: scroll()) {
+	html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) body::after {
+		content: '';
+		position: fixed;
+		inset-block-start: 0;
+		inset-inline: 0;
+		block-size: 2px;
+		z-index: calc(var(--sl-z-index-navbar) + 1);
+		background: linear-gradient(90deg, var(--chapter-grad-a), var(--chapter-grad-b));
+		transform-origin: 0 50%;
+		transform: scaleX(0);
+		animation: chapter-progress linear both;
+		animation-timeline: scroll(root);
+	}
+
+	@keyframes chapter-progress {
+		to {
+			transform: scaleX(1);
+		}
+	}
+}
+
+/* L2 丰富：卡片悬停浮起 */
+html:is([data-motion='2'], [data-motion='3']) .card {
+	transition:
+		transform 0.22s cubic-bezier(0, 0, 0.2, 1),
+		box-shadow 0.22s cubic-bezier(0, 0, 0.2, 1),
+		border-color 0.22s ease;
+}
+
+html:is([data-motion='2'], [data-motion='3']) .card:hover {
+	transform: translateY(-3px);
+	border-color: var(--chapter-line);
+	box-shadow: 0 8px 24px var(--chapter-glow);
+}
+
+/* L2 丰富：引用块章节渐变左缘 + 悬停发光 */
+html:is([data-motion='2'], [data-motion='3']) .sl-markdown-content blockquote {
+	position: relative;
+	border-inline-start: none;
+}
+
+html:is([data-motion='2'], [data-motion='3']) .sl-markdown-content blockquote::before {
+	content: '';
+	position: absolute;
+	inset-block: 0;
+	inset-inline-start: 0;
+	inline-size: 3px;
+	border-radius: 2px;
+	background: linear-gradient(180deg, var(--chapter-grad-a), var(--chapter-grad-b));
+	transition: box-shadow 0.22s ease;
+}
+
+html:is([data-motion='2'], [data-motion='3']) .sl-markdown-content blockquote:hover::before {
+	box-shadow: 0 0 12px var(--chapter-glow), 0 0 2px var(--chapter-grad-a);
+}
+
+/* L2 丰富：Callout 标题入场 */
+html:is([data-motion='2'], [data-motion='3']) .starlight-aside .starlight-aside-title {
+	animation: aside-enter 0.4s cubic-bezier(0, 0, 0.2, 1) backwards;
+}
+
+@keyframes aside-enter {
+	from {
+		opacity: 0;
+		transform: translateY(-4px);
+	}
+}
+
+/* 自动化维护章节：警示类 Callout 图标脉冲 */
+html[data-chapter='automation']:is([data-motion='2'], [data-motion='3'])
+	.starlight-aside--caution
+	.starlight-aside-title
+	svg,
+html[data-chapter='automation']:is([data-motion='2'], [data-motion='3'])
+	.starlight-aside--danger
+	.starlight-aside-title
+	svg {
+	animation: chapter-pulse 2.2s ease-in-out infinite;
+}
+
+/* 代码块悬停边框增亮 */
+html:is([data-motion='2'], [data-motion='3']) .expressive-code pre {
+	transition: border-color 0.22s ease;
+}
+
+html:is([data-motion='2'], [data-motion='3']) .expressive-code:hover pre,
+html:is([data-motion='2'], [data-motion='3']) .expressive-code pre:hover {
+	border-color: var(--chapter-grad-a);
+}
+
+/* L3 沉浸：首页 Hero 氛围光（纯 radial-gradient 漂移，无 filter） */
+html[data-chapter='home'][data-motion='3'] .hero {
+	position: relative;
+	z-index: 0;
+	overflow: clip;
+}
+
+html[data-chapter='home'][data-motion='3'] .hero::before,
+html[data-chapter='home'][data-motion='3'] .hero::after {
+	content: '';
+	position: absolute;
+	z-index: -1;
+	inline-size: min(58%, 34rem);
+	aspect-ratio: 1;
+	border-radius: 50%;
+	pointer-events: none;
+	will-change: transform;
+}
+
+html[data-chapter='home'][data-motion='3'] .hero::before {
+	inset-block-start: -18%;
+	inset-inline-start: -8%;
+	background: radial-gradient(circle, hsl(224 100% 60% / 0.16) 0%, transparent 68%);
+	animation: ambient-a 38s ease-in-out infinite alternate;
+}
+
+html[data-chapter='home'][data-motion='3'] .hero::after {
+	inset-block-end: -26%;
+	inset-inline-end: -12%;
+	background: radial-gradient(circle, hsl(264 100% 66% / 0.12) 0%, transparent 68%);
+	animation: ambient-b 52s ease-in-out infinite alternate;
+}
+
+@keyframes ambient-a {
+	to {
+		transform: translate3d(14vw, 10vh, 0) scale(1.15);
+	}
+}
+
+@keyframes ambient-b {
+	to {
+		transform: translate3d(-12vw, -8vh, 0) scale(1.2);
+	}
+}
+
+/* L3 沉浸：章节首页 Canvas 宿主（由 src/scripts/effects 引擎挂载） */
+#chapter-canvas {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline: 0;
+	block-size: clamp(8.75rem, 20vh, 15rem);
+	inline-size: 100%;
+	pointer-events: none;
+	z-index: -1;
+	-webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
+	mask-image: linear-gradient(180deg, #000 55%, transparent);
+}
+
+/* ------------------------------------------------------------------
+   5. 章节切换过渡
+   优先使用跨文档 View Transitions（Chrome 126+ / Safari 18.2+）；
+   其余浏览器退化为入场动画（通过 data-fx 门控避免双重动画）。
+   每章有固定的“进入方向”：current 自下而上、evolution 自左（回溯）、
+   reference 自右、automation 自上（下发）、home 居中浮现。
+   ------------------------------------------------------------------ */
+@view-transition {
+	navigation: auto;
+}
+
+/* 章节切换的色彩插值：ChapterHead 首帧先按上一章节着色，随后切到当前章节，
+   已注册的章节变量在 html 上平滑过渡（不依赖跨文档 View Transitions）。
+   实测跨文档 VT 在部分 Chromium 上不会触发，此机制为主路径。 */
+@media (prefers-reduced-motion: no-preference) {
+	html:is([data-motion='1'], [data-motion='2'], [data-motion='3']) {
+		transition:
+			--chapter-hue 0.5s cubic-bezier(0.2, 0, 0.2, 1),
+			--chapter-light-accent 0.5s cubic-bezier(0.2, 0, 0.2, 1),
+			--chapter-light-accent-high 0.5s cubic-bezier(0.2, 0, 0.2, 1),
+			--chapter-light-accent-low 0.5s cubic-bezier(0.2, 0, 0.2, 1);
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	/* 旧页面快照快速退场：拖长的淡出会让旧章节色"闪"在屏幕上 */
+	::view-transition-old(root) {
+		animation: vt-out 0.08s linear both;
+	}
+
+	::view-transition-new(root) {
+		animation: vt-in 0.28s cubic-bezier(0, 0, 0.2, 1) both;
+	}
+
+	html[data-chapter='current']::view-transition-new(root) {
+		animation-name: vt-in-up;
+	}
+
+	html[data-chapter='evolution']::view-transition-new(root) {
+		animation-name: vt-in-left;
+	}
+
+	html[data-chapter='reference']::view-transition-new(root) {
+		animation-name: vt-in-right;
+	}
+
+	html[data-chapter='automation']::view-transition-new(root) {
+		animation-name: vt-in-down;
+	}
+
+	html[data-chapter='home']::view-transition-new(root) {
+		animation-name: vt-in-center;
+	}
+}
+
+@keyframes vt-out {
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes vt-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes vt-in-up {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+}
+
+@keyframes vt-in-left {
+	from {
+		opacity: 0;
+		transform: translateX(-16px);
+	}
+}
+
+@keyframes vt-in-right {
+	from {
+		opacity: 0;
+		transform: translateX(16px);
+	}
+}
+
+@keyframes vt-in-down {
+	from {
+		opacity: 0;
+		transform: translateY(-12px);
+	}
+}
+
+@keyframes vt-in-center {
+	from {
+		opacity: 0;
+		transform: scale(0.985);
+	}
+}
+
+/* 不支持 View Transitions 的浏览器：入场动画兜底（轻量上移淡入） */
+html:not([data-fx='vt']):not([data-motion='0']) main {
+	animation: vt-in-up 0.34s cubic-bezier(0, 0, 0.2, 1) backwards;
+}
+
+html:not([data-fx='vt']):not([data-motion='0'])[data-chapter='evolution'] main {
+	animation-name: vt-in-left;
+}
+
+html:not([data-fx='vt']):not([data-motion='0'])[data-chapter='reference'] main {
+	animation-name: vt-in-right;
+}
+
+html:not([data-fx='vt']):not([data-motion='0'])[data-chapter='automation'] main {
+	animation-name: vt-in-down;
+}
+
+html:not([data-fx='vt']):not([data-motion='0'])[data-chapter='home'] main {
+	animation-name: vt-in-center;
+}
+
+/* ------------------------------------------------------------------
+   6. 降级与可访问性
+   ------------------------------------------------------------------ */
+/* 系统级“减弱动态效果”：全站动画/过渡一律熄灭（含 Canvas 由 JS 双保险） */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-name: none !important;
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+
+	#chapter-canvas {
+		display: none;
+	}
+}
+
+@media print {
+	#chapter-canvas {
+		display: none;
+	}
+
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
