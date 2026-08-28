@@ -11,10 +11,13 @@ async function source(relative: string): Promise<string> {
 
 test('conversation-memory guide claims remain mechanically tied to LoveApp source', async () => {
   const loveApp = await source('src/main/java/com/zxb/app/LoveApp.java');
+  const guide = await source('docs-site/src/content/docs/current/conversation-memory.md');
   assert.match(loveApp, /MessageWindowChatMemory\.builder\(\)\.maxMessages\(3\)\.build\(\)/);
   assert.match(loveApp, /param\(CONVERSATION_ID, chatId\)/);
   assert.match(loveApp, /ChatMemory chatMemory/);
   assert.doesNotMatch(loveApp, /Jdbc|Redis/i);
+  assert.match(guide, /`maxMessages\(3\)`/);
+  assert.doesNotMatch(guide, /20 条消息窗口/);
 });
 
 test('console conversation uses one random ID per process and lives in test sources', async () => {

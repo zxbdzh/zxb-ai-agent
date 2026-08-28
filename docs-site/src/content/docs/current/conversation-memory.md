@@ -1,6 +1,6 @@
 ---
 title: 4. 对话记忆与会话隔离
-description: Conversation ID、20 条消息窗口和进程内存边界。
+description: Conversation ID、消息窗口和进程内存边界。
 docType: current-guide
 sidebar:
   order: 4
