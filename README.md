@@ -1,15 +1,31 @@
-# zxb-ai-agent
+<div align="center">
 
-Spring Boot 4 + Spring AI 2.0 的实验项目：围绕 ChatClient、对话记忆（ChatMemory）与 Advisor 机制做验证，同时把工程质量门禁（Spotless + Alibaba P3C）和「学习检查点」文档机制跑通。
+# zxb-ai-agent
 
 [English](README.en.md)
 
+**Spring Boot 4 + Spring AI 2.0 实验项目。** 围绕 ChatClient、对话记忆与 Advisor 机制做验证，同时跑通工程质量门禁与「学习检查点」文档机制。
+
+<sub>// ChatClient 多轮对话 · Spotless + Alibaba P3C · Learning Checkpoint</sub>
+
+<br />
+
+![Java](https://img.shields.io/badge/Java-25-f89820?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-6db33f?logo=springboot&logoColor=white)
+![Spring AI](https://img.shields.io/badge/Spring%20AI-2.0.0-6db33f?logo=spring&logoColor=white)
+![Gradle](https://img.shields.io/badge/Gradle-9.x-02303a?logo=gradle&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+</div>
+
+---
+
 ## 当前内容
 
-- **ChatClient 多轮对话**：`MessageChatMemoryAdvisor` + `MessageWindowChatMemory` 滑动窗口记忆，按 `conversationId` 隔离会话（示例：`LoveApp`）
-- **OpenAI 兼容接入**：可对接任意 OpenAI 兼容端点，环境变量配置
-- **质量门禁**：`./gradlew styleCheck` 一键跑 Spotless 格式检查 + Alibaba P3C 规约（PMD 6）
-- **学习文档机制**：以 commit trailer 标记 Learning Checkpoint，自动产出 Evolution Record（见 [CONTEXT.md](./CONTEXT.md)）
+- 💬 **ChatClient 多轮对话** — `MessageChatMemoryAdvisor` + `MessageWindowChatMemory` 滑动窗口记忆，按 `conversationId` 隔离会话（示例：`LoveApp`）
+- 🔌 **OpenAI 兼容接入** — 可对接任意 OpenAI 兼容端点，环境变量配置
+- 🛡 **质量门禁** — `./gradlew styleCheck` 一键跑 Spotless 格式检查 + Alibaba P3C 规约（PMD 6）
+- 📚 **学习文档机制** — 以 commit trailer 标记 Learning Checkpoint，自动产出 Evolution Record（见 [CONTEXT.md](./CONTEXT.md)）
 
 ## 快速开始
 

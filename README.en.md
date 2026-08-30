@@ -1,15 +1,31 @@
-# zxb-ai-agent
+<div align="center">
 
-A Spring Boot 4 + Spring AI 2.0 playground: experimenting with ChatClient, chat memory (ChatMemory) and the Advisor mechanism, while keeping strict quality gates (Spotless + Alibaba P3C) and a learning-checkpoint documentation workflow.
+# zxb-ai-agent
 
 [中文](README.md)
 
+**A Spring Boot 4 + Spring AI 2.0 playground.** Experimenting with ChatClient, chat memory and the Advisor mechanism — while keeping strict quality gates and a learning-checkpoint documentation workflow.
+
+<sub>// ChatClient multi-turn chat · Spotless + Alibaba P3C · Learning Checkpoint</sub>
+
+<br />
+
+![Java](https://img.shields.io/badge/Java-25-f89820?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-6db33f?logo=springboot&logoColor=white)
+![Spring AI](https://img.shields.io/badge/Spring%20AI-2.0.0-6db33f?logo=spring&logoColor=white)
+![Gradle](https://img.shields.io/badge/Gradle-9.x-02303a?logo=gradle&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+</div>
+
+---
+
 ## What's inside
 
-- **ChatClient multi-turn chat**: `MessageChatMemoryAdvisor` + `MessageWindowChatMemory` sliding-window memory, sessions isolated by `conversationId` (example: `LoveApp`)
-- **OpenAI-compatible endpoint**: works with any OpenAI-compatible API, configured via environment variables
-- **Quality gates**: `./gradlew styleCheck` runs Spotless formatting + Alibaba P3C rules (PMD 6)
-- **Learning docs workflow**: commits tagged with Learning Checkpoint trailers produce Evolution Records automatically (see [CONTEXT.md](./CONTEXT.md))
+- 💬 **ChatClient multi-turn chat** — `MessageChatMemoryAdvisor` + `MessageWindowChatMemory` sliding-window memory, sessions isolated by `conversationId` (example: `LoveApp`)
+- 🔌 **OpenAI-compatible endpoint** — works with any OpenAI-compatible API, configured via environment variables
+- 🛡 **Quality gates** — `./gradlew styleCheck` runs Spotless formatting + Alibaba P3C rules (PMD 6)
+- 📚 **Learning docs workflow** — commits tagged with Learning Checkpoint trailers produce Evolution Records automatically (see [CONTEXT.md](./CONTEXT.md))
 
 ## Quick start
 
