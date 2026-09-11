@@ -1,5 +1,6 @@
 package com.zxb.app;
 
+import com.zxb.config.MyCustomAdvisor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -28,7 +29,7 @@ public class LoveApp {
         // 使用进程内存仓库，并将滑动窗口限制为最近 3 条消息
         ChatMemory chatMemory = MessageWindowChatMemory.builder().maxMessages(3).build();
         this.chatClient = ChatClient.builder(chatModel).defaultSystem(SYSTEM_PROMPT)
-                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build()).build();
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build(), new MyCustomAdvisor()).build();
     }
 
     public String doChat(String message, String chatId) {
