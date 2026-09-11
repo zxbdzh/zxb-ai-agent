@@ -4,8 +4,8 @@ description: Conversation ID、消息窗口和进程内存边界。
 docType: current-guide
 sidebar:
   order: 4
-verifiedAgainst: 54985619feb72d76c18f9c92eff6f4fc51790401
-verifiedAt: 2026-08-28
+verifiedAgainst: 83c358643aeac4e91edc19b2b3121327409222a1
+verifiedAt: 2026-09-11
 evidencePaths:
   - src/main/java/com/zxb/app/LoveApp.java
   - src/test/java/com/zxb/zxbaiagent/ConsoleChatApplication.java
@@ -15,7 +15,7 @@ verificationCommands:
 
 ## 对话记忆
 
-`LoveApp` 使用 `MessageWindowChatMemory`，并显式设置 `maxMessages(3)`。`MessageChatMemoryAdvisor` 被配置为默认 Advisor，用于在请求中使用记忆。
+`LoveApp` 使用 `MessageWindowChatMemory`，并显式设置 `maxMessages(3)`。默认 Advisor 链包含 `MessageChatMemoryAdvisor` 和 `MyCustomAdvisor`：前者用于在请求中使用记忆，后者会在请求前向标准输出写入用户消息，并在响应后向标准输出写入模型回复文本。
 
 每次 `doChat(message, chatId)` 调用都会将 `chatId` 作为 `ChatMemory.CONVERSATION_ID` 参数传入。相同 ID 对应同一会话记忆，不同 ID 用于区分会话。
 

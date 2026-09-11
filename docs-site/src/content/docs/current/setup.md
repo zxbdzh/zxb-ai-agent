@@ -4,8 +4,8 @@ description: Java、Gradle Wrapper 与首次构建前提。
 docType: current-guide
 sidebar:
   order: 1
-verifiedAgainst: 54985619feb72d76c18f9c92eff6f4fc51790401
-verifiedAt: 2026-08-28
+verifiedAgainst: 83c358643aeac4e91edc19b2b3121327409222a1
+verifiedAt: 2026-09-11
 evidencePaths:
   - build.gradle
   - gradle/wrapper/gradle-wrapper.properties
