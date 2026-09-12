@@ -4,8 +4,8 @@ description: 当前 OpenAI 兼容模型的实际配置键和值。
 docType: current-guide
 sidebar:
   order: 2
-verifiedAgainst: 54985619feb72d76c18f9c92eff6f4fc51790401
-verifiedAt: 2026-08-28
+verifiedAgainst: fc935d9b4bdc87addaacebc86798df77bbd06f5d
+verifiedAt: 2026-09-12
 evidencePaths:
   - src/main/resources/application.yaml
   - build.gradle

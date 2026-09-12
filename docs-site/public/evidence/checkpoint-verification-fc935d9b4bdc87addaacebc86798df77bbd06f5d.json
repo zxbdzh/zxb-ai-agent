@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "checkpointSha": "fc935d9b4bdc87addaacebc86798df77bbd06f5d",
+  "runUrl": "https://github.com/zxbdzh/zxb-ai-agent/actions/runs/34699647797",
+  "artifactName": "checkpoint-verification-fc935d9b4bdc87addaacebc86798df77bbd06f5d",
+  "artifactUrl": "https://github.com/zxbdzh/zxb-ai-agent/actions/runs/34699647797#artifacts",
+  "checks": [
+    {
+      "id": "gradle-style",
+      "command": "./gradlew styleCheck",
+      "status": "passed"
+    },
+    {
+      "id": "gradle-build-no-tests",
+      "command": "./gradlew build -x test",
+      "status": "passed"
+    }
+  ]
+}

@@ -4,8 +4,8 @@ description: 构建、样式、Git Hooks 与模型测试边界。
 docType: current-guide
 sidebar:
   order: 5
-verifiedAgainst: 54985619feb72d76c18f9c92eff6f4fc51790401
-verifiedAt: 2026-08-28
+verifiedAgainst: fc935d9b4bdc87addaacebc86798df77bbd06f5d
+verifiedAt: 2026-09-12
 evidencePaths:
   - build.gradle
   - .githooks/pre-commit
