@@ -4,8 +4,8 @@ description: Conversation ID、消息窗口和进程内存边界。
 docType: current-guide
 sidebar:
   order: 4
-verifiedAgainst: 54985619feb72d76c18f9c92eff6f4fc51790401
-verifiedAt: 2026-08-28
+verifiedAgainst: fb2ca23b07c92996ad061fd89bd68d05c3e93057
+verifiedAt: 2026-09-11
 evidencePaths:
   - src/main/java/com/zxb/app/LoveApp.java
   - src/test/java/com/zxb/zxbaiagent/ConsoleChatApplication.java

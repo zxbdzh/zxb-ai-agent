@@ -22,7 +22,11 @@ test('Chinese Pagefind UI returns every representative fixture within its rank b
     await expect(input).toBeVisible();
     await input.fill(fixture.query);
     const results = dialog.locator('a[href]');
-    await expect.poll(async () => results.count(), { message: fixture.query }).toBeGreaterThan(0);
+    const resultHrefs = async (): Promise<string[]> => results.evaluateAll((anchors) => anchors.map((anchor) => (anchor as HTMLAnchorElement).getAttribute('href') ?? ''));
+    await expect.poll(
+      async () => (await resultHrefs()).findIndex((href) => href.includes(fixture.destination)) + 1,
+      { message: fixture.query },
+    ).toBeGreaterThan(0);
     if (fixture === fixtures[0]) {
       const afterSearch = await page.evaluate(() => performance.getEntriesByType('resource').reduce((sum, entry) => {
         const resource = entry as PerformanceResourceTiming;
@@ -30,7 +34,7 @@ test('Chinese Pagefind UI returns every representative fixture within its rank b
       }, 0));
       expect(afterSearch - beforeSearch, 'additional first-search transfer').toBeLessThanOrEqual(500 * 1024);
     }
-    const hrefs = await results.evaluateAll((anchors) => anchors.map((anchor) => (anchor as HTMLAnchorElement).getAttribute('href') ?? ''));
+    const hrefs = await resultHrefs();
     const rank = hrefs.findIndex((href) => href.includes(fixture.destination)) + 1;
     expect(rank, `${fixture.query} (${fixture.kind})`).toBeGreaterThan(0);
     expect(rank, `${fixture.query} (${fixture.kind})`).toBeLessThanOrEqual(fixture.maxRank);
