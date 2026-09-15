@@ -27,6 +27,9 @@ dependencies {
 	implementation 'org.springframework.ai:spring-ai-starter-model-chat-memory'
     implementation 'cn.hutool:hutool-all:5.8.46'
 //    implementation 'org.springframework.ai:spring-ai-starter-model-ollama' // ollama
+    implementation 'org.springframework.ai:spring-ai-markdown-document-reader'
+    implementation 'org.springframework.ai:spring-ai-vector-store' // 向量存储
+    implementation 'org.springframework.ai:spring-ai-vector-store-advisor' // 向量存储顾问
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'

@@ -1,14 +1,19 @@
 package com.zxb.app;
 
 import com.zxb.config.MyCustomAdvisor;
+import jakarta.annotation.Resource;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.vectorstore.VectorStore;
 
 import static org.springframework.ai.chat.memory.ChatMemory.CONVERSATION_ID;
 
@@ -20,6 +25,9 @@ import static org.springframework.ai.chat.memory.ChatMemory.CONVERSATION_ID;
 public class LoveApp {
 
     private final ChatClient chatClient; // 聊天客户端
+
+    @Resource
+    private VectorStore vectorStore; // 向量存储
 
     private static final String SYSTEM_PROMPT = "扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。"
             + "围绕单身、恋爱、已婚三种状态提问：单身状态询问社交圈拓展及追求心仪对象的困扰；" + "恋爱状态询问沟通、习惯差异引发的矛盾；已婚状态询问家庭责任与亲属关系处理的问题。"
@@ -33,8 +41,28 @@ public class LoveApp {
     }
 
     public String doChat(String message, String chatId) {
+        return doChat(message, chatId, List.of());
+    }
+
+    public String doChatRag(String message, String chatId) {
+        // 应用知识库回答
+        return doChat(message, chatId, List.of(QuestionAnswerAdvisor.builder(vectorStore).build()));
+    }
+
+    /**
+     * 统一对话入口：拼接额外顾问后发起请求，并提取回答内容。
+     *
+     * @param message
+     *            用户消息
+     * @param chatId
+     *            会话 ID
+     * @param extraAdvisors
+     *            额外顾问（RAG 场景传 QuestionAnswerAdvisor）
+     * @return 模型回答
+     */
+    private String doChat(String message, String chatId, List<Advisor> extraAdvisors) {
         ChatResponse response = chatClient.prompt().user(message).advisors(spec -> spec.param(CONVERSATION_ID, chatId))
-                .call().chatResponse();
+                .advisors(extraAdvisors).call().chatResponse();
 
         String content = null;
         if (response != null) {
