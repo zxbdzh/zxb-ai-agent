@@ -6,6 +6,9 @@ spring:
       api-key: ${OPENAI_APIKEY}
       base-url: ${OPENAI_BASEURL:https://api.openai.com}
       chat:
-        model: gpt-5.6-terra
+        model: qwen3.8:27b-fast
         temperature: 0.7
         max-tokens: 1000
+      embedding:
+        base-url: ${EMBEDDING_BASEURL:http://localhost:11434/v1}
+        model: ${EMBEDDING_MODEL:nomic-embed-text:latest}
